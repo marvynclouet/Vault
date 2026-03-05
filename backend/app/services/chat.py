@@ -4,7 +4,13 @@ from openai import AsyncOpenAI
 
 from app.config import settings
 
-client = AsyncOpenAI(api_key=settings.openai_api_key)
+def _get_client():
+    if settings.ai_provider == "groq":
+        return AsyncOpenAI(
+            api_key=settings.groq_api_key,
+            base_url="https://api.groq.com/openai/v1",
+        )
+    return AsyncOpenAI(api_key=settings.openai_api_key)
 
 SYSTEM_PROMPT = """Tu es le PM/PO IA de l'application Vault-PM. Tu es un Chef de Projet et Product Owner expérimenté, direct, bienveillant et stratégique.
 
@@ -40,7 +46,7 @@ RÈGLES DE RÉPONSE :
 }}
 
 - Pour project_updates.tasks, renvoie TOUJOURS la liste COMPLÈTE des tâches (pas juste celles modifiées).
-- Chaque tâche : {{"title": "...", "description": "...", "assignee_role": "...", "priority": "Haute|Moyenne|Basse", "action_target": "Trello"}}
+- Chaque tâche : {{"title": "...", "description": "...", "assignee_role": "...", "priority": "Haute|Moyenne|Basse", "action_target": "Trello", "status": "todo|in_progress|done", "due_date": null ou "YYYY-MM-DD", "completed_at": null ou ISO datetime, "order": 0}}
 - Si aucune modification n'est demandée, project_updates reste null.
 - Sois concis mais chaleureux. Tutoie l'utilisateur. Utilise des formulations du type "On fait ça", "Je te propose de...", "Bonne idée, par contre attention à..."."""
 
@@ -79,6 +85,7 @@ async def chat_with_pm(
 
     api_messages.append({"role": "user", "content": user_message})
 
+    client = _get_client()
     response = await client.chat.completions.create(
         model=settings.llm_model,
         messages=api_messages,

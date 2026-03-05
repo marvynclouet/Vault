@@ -3,6 +3,7 @@ import {
   View,
   Text,
   TextInput,
+  Image,
   TouchableOpacity,
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -62,14 +63,11 @@ export default function AuthScreen() {
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: "spring", damping: 12, delay: 200 }}
           >
-            <LinearGradient
-              colors={[c.accent, "#6D28D9"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
+            <Image
+              source={require("../../assets/icon.png")}
               style={styles.logo}
-            >
-              <Text style={styles.logoText}>V</Text>
-            </LinearGradient>
+              resizeMode="contain"
+            />
           </MotiView>
           <MotiView
             from={{ opacity: 0, translateY: 10 }}
@@ -157,8 +155,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { flex: 1, justifyContent: "center", padding: spacing.xxl },
   logoSection: { alignItems: "center", marginBottom: 48 },
-  logo: { width: 68, height: 68, borderRadius: 20, alignItems: "center", justifyContent: "center", marginBottom: 16 },
-  logoText: { color: "#fff", fontSize: 32, fontWeight: "700" },
+  logo: { width: 180, height: 180, marginBottom: 24 },
   appName: { fontSize: 28, fontWeight: "700", textAlign: "center" },
   tagline: { fontSize: 14, marginTop: 6, textAlign: "center" },
   slogan: { fontSize: 14, fontStyle: "italic", marginTop: 4, textAlign: "center" },

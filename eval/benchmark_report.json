@@ -1,0 +1,81 @@
+{
+  "date": "2026-03-05T14:26:47.987166",
+  "verdict": "PARTIEL",
+  "score": {
+    "reussi": 8,
+    "total": 10,
+    "pourcentage": 80
+  },
+  "analyse": {
+    "reussi": 3,
+    "total": 5,
+    "latence_moyenne_sec": 9.58,
+    "details": [
+      {
+        "test": "Idée claire (factures freelances)",
+        "ok": true,
+        "ms": 4508.0,
+        "engine": "groq-70b"
+      },
+      {
+        "test": "Idée vague → clarification",
+        "ok": true,
+        "ms": 979.0,
+        "engine": "groq-70b"
+      },
+      {
+        "test": "Marketplace B2C",
+        "ok": false,
+        "ms": 4857.0,
+        "engine": "groq-70b"
+      },
+      {
+        "test": "SaaS technique",
+        "ok": false,
+        "ms": 14778.0,
+        "engine": "groq-70b"
+      },
+      {
+        "test": "Input long (stress tokens)",
+        "ok": true,
+        "ms": 22756.0,
+        "engine": "groq-70b"
+      }
+    ]
+  },
+  "chat": {
+    "reussi": 4,
+    "total": 4,
+    "latence_moyenne_sec": 4.29,
+    "details": [
+      {
+        "test": "Question simple",
+        "ok": true,
+        "ms": 4477.0
+      },
+      {
+        "test": "Modification tâches",
+        "ok": true,
+        "ms": 3859.0
+      },
+      {
+        "test": "Changement priorités",
+        "ok": true,
+        "ms": 3837.0
+      },
+      {
+        "test": "Conversation multi-tours",
+        "ok": true,
+        "ms": 4988.0
+      }
+    ]
+  },
+  "stress": {
+    "ok": true,
+    "ms": 7121.0
+  },
+  "parallele": {
+    "ok": false,
+    "ms": 35098.0
+  }
+}

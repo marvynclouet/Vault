@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useMemo } from "react";
+import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import { useTheme } from "../contexts/ThemeContext";
 import { radius, spacing } from "../theme";
 
 const TIPS = [
+  "💡 Parle en français ou en anglais pour une meilleure reconnaissance.",
   "💡 Parle de ton problème, ta cible client, et ta solution idéale.",
   "💡 Décris le parcours utilisateur idéal de ton app.",
   "💡 Quel est ton avantage par rapport à la concurrence ?",
@@ -32,14 +33,36 @@ const STEPS = [
   { emoji: "✅", title: "Plan d'action", desc: "Tâches prêtes à exécuter" },
 ];
 
+const ANALYSIS_STEPS = [
+  { key: "transcript", label: "Transcription terminée", delay: 0 },
+  { key: "market", label: "Analyse du marché...", delay: 2500 },
+  { key: "tasks", label: "Génération des tâches...", delay: 5000 },
+];
+
 export default function DictateScreen({ navigation }) {
   const { colors: c } = useTheme();
   const [liveLines, setLiveLines] = useState([]);
   const [processing, setProcessing] = useState(false);
+  const [analysisStep, setAnalysisStep] = useState(0);
   const [error, setError] = useState(null);
   const [recentProjects, setRecentProjects] = useState([]);
   const [showActions, setShowActions] = useState(false);
   const liveTranscribing = useRef(false);
+  const stepTimers = useRef([]);
+
+  useEffect(() => {
+    if (!processing) {
+      setAnalysisStep(0);
+      stepTimers.current.forEach((t) => clearTimeout(t));
+      stepTimers.current = [];
+      return;
+    }
+    ANALYSIS_STEPS.forEach((s, i) => {
+      const t = setTimeout(() => setAnalysisStep((prev) => Math.max(prev, i + 1)), s.delay);
+      stepTimers.current.push(t);
+    });
+    return () => stepTimers.current.forEach((t) => clearTimeout(t));
+  }, [processing]);
   const tip = useMemo(() => TIPS[Math.floor(Math.random() * TIPS.length)], []);
 
   useFocusEffect(
@@ -90,7 +113,10 @@ export default function DictateScreen({ navigation }) {
       setLiveLines([]);
       setShowActions(false);
       navigation.navigate("Projets", { screen: "ProjectDetail", params: { projectId: saved.id } });
-    } catch (err) { setError(err.message); }
+    } catch (err) {
+      const msg = err?.message || "Erreur lors de l'analyse.";
+      setError(msg);
+    }
     finally { setProcessing(false); }
   }, [audioUri, audioBlob, navigation, resetRecording]);
 
@@ -103,7 +129,7 @@ export default function DictateScreen({ navigation }) {
     <ScrollView style={[styles.container, { backgroundColor: c.bgPrimary }]} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <MotiView from={{ opacity: 0, translateY: 15 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: "spring", damping: 18 }}>
         <Text style={[styles.title, { color: c.textPrimary }]}>Nouvelle dictée</Text>
-        <Text style={[styles.subtitle, { color: c.textSecondary }]}>Décris ton idée librement. L'IA structure tout.</Text>
+        <Text style={[styles.subtitle, { color: c.textSecondary }]}>Décris ton idée en français ou en anglais. L'IA structure tout.</Text>
       </MotiView>
 
       {/* Tip card */}
@@ -159,9 +185,19 @@ export default function DictateScreen({ navigation }) {
         </AnimatePresence>
 
         {processing && (
-          <MotiView from={{ opacity: 0 }} animate={{ opacity: 1 }} style={styles.processingRow}>
-            <ActivityIndicator size="small" color={c.accent} />
-            <Text style={[styles.processingText, { color: c.textSecondary }]}>L'IA analyse ton projet...</Text>
+          <MotiView from={{ opacity: 0 }} animate={{ opacity: 1 }} style={[styles.processingCard, { borderColor: c.border }]}>
+            <Text style={[styles.processingTitle, { color: c.textPrimary }]}>🧠 Ton PM analyse ton idée...</Text>
+            {ANALYSIS_STEPS.map((s, i) => {
+              const done = i < analysisStep;
+              return (
+                <View key={s.key} style={styles.stepRow}>
+                  <Text style={styles.stepIcon}>{done ? "✅" : "⏳"}</Text>
+                  <Text style={[styles.stepLabel, { color: done ? c.success : c.textSecondary }]}>
+                    {s.label}
+                  </Text>
+                </View>
+              );
+            })}
           </MotiView>
         )}
       </View>
@@ -229,11 +265,16 @@ export default function DictateScreen({ navigation }) {
                         <TouchableOpacity
                           activeOpacity={0.7}
                           onPress={() => navigation.navigate("Projets", { screen: "ProjectDetail", params: { projectId: p.id } })}
-                          style={[styles.recentCard, { backgroundColor: c.bgCard, borderColor: c.border }]}
+                          style={[styles.recentCard, { borderColor: c.border }]}
                         >
                           <View style={[styles.recentBand, { backgroundColor: bandColor }]} />
-                          <Text style={[styles.recentName, { color: c.textPrimary }]} numberOfLines={1}>{p.project_name}</Text>
-                          <Text style={[styles.recentTasks, { color: c.textMuted }]}>{p.tasks?.length || 0} tâches</Text>
+                          <View style={{ paddingLeft: 12, paddingTop: 12, paddingBottom: 12 }}>
+                            <View style={[styles.recentScoreCircle, { borderColor: bandColor }]}>
+                              <Text style={[styles.recentScoreText, { color: bandColor }]}>{p.review?.confidence ?? p.review?.score_global ?? "—"}</Text>
+                            </View>
+                            <Text style={[styles.recentName, { color: c.textPrimary }]} numberOfLines={1}>{p.project_name}</Text>
+                            <Text style={[styles.recentTasks, { color: c.textMuted }]}>{p.tasks?.length || 0} tâches ›</Text>
+                          </View>
                         </TouchableOpacity>
                       </MotiView>
                     );
@@ -245,7 +286,7 @@ export default function DictateScreen({ navigation }) {
         )}
       </AnimatePresence>
 
-      <Text style={[styles.privacyNote, { color: c.textDisabled }]}>🔒 Ton audio n'est jamais stocké</Text>
+      <Text style={[styles.privacyNote, { color: c.textDisabled }]}>Ton audio n'est jamais stocké • Français ou anglais uniquement</Text>
       <View style={{ height: 120 }} />
     </ScrollView>
   );
@@ -256,32 +297,44 @@ const styles = StyleSheet.create({
   content: { padding: spacing.xl, paddingTop: 56 },
   title: { fontSize: 28, fontWeight: "700", letterSpacing: -0.5, marginBottom: 4 },
   subtitle: { fontSize: 15, marginBottom: spacing.lg, lineHeight: 21 },
-  tipCard: { backgroundColor: "rgba(245,158,11,0.06)", borderColor: "rgba(245,158,11,0.12)", borderWidth: 1, borderRadius: 14, padding: 14, marginBottom: spacing.lg },
-  tipText: { fontSize: 13, color: "#F5C842", lineHeight: 19 },
+  tipCard: { backgroundColor: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.08)", borderWidth: 1, borderRadius: 20, padding: 16, marginBottom: spacing.lg },
+  tipText: { fontSize: 14, color: "rgba(255,255,255,0.7)", lineHeight: 20 },
   recordZone: { alignItems: "center", paddingVertical: 4, marginBottom: spacing.md },
   actionRow: { flexDirection: "row", gap: 10, marginTop: 4 },
   analyzeBtn: { paddingHorizontal: 24, paddingVertical: 14, borderRadius: radius.input },
   analyzeBtnText: { color: "#fff", fontWeight: "600", fontSize: 14 },
   resetBtn: { paddingHorizontal: 18, paddingVertical: 14, borderRadius: radius.input, borderWidth: 1 },
   resetBtnText: { fontWeight: "500", fontSize: 14 },
-  processingRow: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 20 },
-  processingText: { fontSize: 14 },
+  processingCard: {
+    marginTop: 20,
+    padding: spacing.lg,
+    borderRadius: radius.card,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  processingTitle: { fontSize: 15, fontWeight: "600", marginBottom: 12 },
+  stepRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 6 },
+  stepIcon: { fontSize: 14 },
+  stepLabel: { fontSize: 13 },
   wordCount: { textAlign: "right", fontSize: 11, marginTop: -8, marginBottom: 12 },
   errorCard: { borderWidth: 1, borderRadius: radius.card, padding: spacing.lg, flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: spacing.lg },
   errorText: { fontSize: 13, flex: 1, marginRight: 10 },
   dismissText: { fontWeight: "600", fontSize: 12 },
   sectionLabel: { fontSize: 11, fontWeight: "600", letterSpacing: 0.9, marginBottom: 12, marginTop: spacing.md },
   stepsRow: { flexDirection: "row", gap: 10, marginBottom: spacing.xl },
-  stepCard: { flex: 1, backgroundColor: "rgba(255,255,255,0.04)", borderRadius: 14, padding: 14, alignItems: "center", borderWidth: 1 },
-  stepEmoji: { fontSize: 24, marginBottom: 8 },
+  stepCard: { flex: 1, backgroundColor: "rgba(255,255,255,0.05)", borderRadius: 20, padding: 16, alignItems: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.08)" },
+  stepEmoji: { fontSize: 24, marginBottom: 8, color: "#A78BFA" },
   stepTitle: { fontSize: 13, fontWeight: "700", marginBottom: 4 },
   stepDesc: { fontSize: 11, textAlign: "center", lineHeight: 15 },
   recentSection: { marginBottom: spacing.xl },
   recentHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
   seeAll: { fontSize: 12, fontWeight: "500" },
-  recentCard: { width: 140, borderWidth: 1, borderRadius: 12, overflow: "hidden" },
-  recentBand: { height: 3, width: "100%" },
-  recentName: { fontSize: 12, fontWeight: "600", padding: 10, paddingBottom: 4 },
-  recentTasks: { fontSize: 11, paddingHorizontal: 10, paddingBottom: 10 },
-  privacyNote: { textAlign: "center", fontSize: 11, marginTop: spacing.lg },
+  recentCard: { width: 150, borderWidth: 1, borderRadius: 16, overflow: "hidden", borderColor: "rgba(255,255,255,0.08)", backgroundColor: "rgba(255,255,255,0.05)" },
+  recentBand: { position: "absolute", left: 0, top: 0, bottom: 0, width: 4 },
+  recentScoreCircle: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, alignItems: "center", justifyContent: "center", marginBottom: 8 },
+  recentScoreText: { fontSize: 14, fontWeight: "700" },
+  recentName: { fontSize: 12, fontWeight: "600", marginBottom: 2 },
+  recentTasks: { fontSize: 11 },
+  privacyNote: { textAlign: "center", fontSize: 12, marginTop: spacing.lg, opacity: 0.5 },
 });

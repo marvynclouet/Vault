@@ -31,6 +31,23 @@ export async function transcribeChunk(audioUri, audioBlob) {
   return data.transcript || "";
 }
 
+export async function transcribeAudioFull(audioUri, audioBlob) {
+  const formData = buildFormData(audioUri, audioBlob);
+  const res = await fetch(`${API_BASE}/api/transcribe`, {
+    method: "POST",
+    body: formData,
+    ...(Platform.OS !== "web" && {
+      headers: { "Content-Type": "multipart/form-data" },
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Erreur transcription (${res.status})`);
+  }
+  const data = await res.json();
+  return data.transcript || "";
+}
+
 export async function analyzeAudio(audioUri, audioBlob) {
   const formData = buildFormData(audioUri, audioBlob);
   const res = await fetch(`${API_BASE}/api/analyze/audio`, {
@@ -39,6 +56,20 @@ export async function analyzeAudio(audioUri, audioBlob) {
     ...(Platform.OS !== "web" && {
       headers: { "Content-Type": "multipart/form-data" },
     }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const detail = Array.isArray(err.detail) ? err.detail[0]?.msg || err.detail[0] : err.detail;
+    throw new Error(detail || `Erreur serveur (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function updateProjectFromTranscript(project, transcript) {
+  const res = await fetch(`${API_BASE}/api/update-project`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ project, transcript }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));

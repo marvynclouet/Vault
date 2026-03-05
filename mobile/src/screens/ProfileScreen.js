@@ -161,15 +161,10 @@ export default function ProfileScreen({ navigation }) {
       </MotiView>
 
       {/* Save button */}
-      <MotiView
-        from={{ opacity: 0, translateY: 10 }}
-        animate={{ opacity: hasChanges ? 1 : 0.4, translateY: 0 }}
-        transition={{ type: "spring", damping: 15, delay: 400 }}
-        style={styles.saveSection}
-      >
+      <View style={[styles.saveSection, { opacity: hasChanges ? 1 : 0.4 }]}>
         <TouchableOpacity
           onPress={handleSave}
-          disabled={saving || !hasChanges}
+          disabled={saving}
           activeOpacity={0.85}
         >
           <LinearGradient
@@ -183,7 +178,7 @@ export default function ProfileScreen({ navigation }) {
             </Text>
           </LinearGradient>
         </TouchableOpacity>
-      </MotiView>
+      </View>
 
       <View style={{ height: 120 }} />
     </Animated.ScrollView>

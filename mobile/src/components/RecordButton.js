@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from "react-native";
+import * as Haptics from "expo-haptics";
 import { MotiView, AnimatePresence } from "moti";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../contexts/ThemeContext";
@@ -39,6 +40,7 @@ export default function RecordButton({ isRecording, duration, onStart, onStop, d
 
   async function handlePress() {
     if (disabled) return;
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setMicError(null);
     if (isRecording) {
       onStop();

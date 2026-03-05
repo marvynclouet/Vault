@@ -1,4 +1,5 @@
-import { useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   View,
   Text,
@@ -9,6 +10,7 @@ import {
   StyleSheet,
 } from "react-native";
 import { useAuth } from "../contexts/AuthContext";
+import { loadProfile } from "../storage";
 import { radius, spacing, type, cardStyle, fadeInUp } from "../theme";
 import { useTheme } from "../contexts/ThemeContext";
 
@@ -31,6 +33,7 @@ function IntegrationRow({ icon, name, desc, badge, badgeColor, badgeBg, dimmed, 
 export default function SettingsScreen({ navigation }) {
   const { colors: c, isDark, toggleTheme } = useTheme();
   const { user, signOut } = useAuth();
+  const [profile, setProfile] = useState(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(8)).current;
 
@@ -41,7 +44,13 @@ export default function SettingsScreen({ navigation }) {
     ]).start();
   }, []);
 
-  const initial = (user?.email || "?")[0].toUpperCase();
+  useFocusEffect(
+    useCallback(() => {
+      loadProfile().then(setProfile).catch(() => setProfile(null));
+    }, [])
+  );
+
+  const avatarDisplay = profile?.avatar_url || (user?.email || "?")[0].toUpperCase();
 
   return (
     <Animated.ScrollView
@@ -58,8 +67,8 @@ export default function SettingsScreen({ navigation }) {
         style={[styles.card, { backgroundColor: c.bgCard, borderColor: c.border }]}
       >
         <View style={styles.accountRow}>
-          <View style={[styles.avatar, { backgroundColor: c.accent }]}>
-            <Text style={styles.avatarText}>{initial}</Text>
+          <View style={[styles.avatar, { backgroundColor: profile?.avatar_url ? c.accentBg : c.accent }]}>
+            <Text style={[styles.avatarText, profile?.avatar_url && { fontSize: 28 }]}>{avatarDisplay}</Text>
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.email, { color: c.textPrimary }]}>{user?.email || "—"}</Text>

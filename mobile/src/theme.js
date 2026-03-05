@@ -12,6 +12,7 @@ const dark = {
   border: "rgba(255,255,255,0.06)",
   borderHover: "rgba(255,255,255,0.12)",
   borderInput: "rgba(255,255,255,0.08)",
+  tabBarBorder: "rgba(255,255,255,0.22)",
 
   accent: "#7C3AED",
   accentEnd: "#4F46E5",
@@ -53,6 +54,7 @@ const light = {
   border: "rgba(0,0,0,0.06)",
   borderHover: "rgba(0,0,0,0.12)",
   borderInput: "rgba(0,0,0,0.08)",
+  tabBarBorder: "rgba(0,0,0,0.18)",
 
   accent: "#7C3AED",
   accentEnd: "#4F46E5",
@@ -87,7 +89,7 @@ export const themes = { dark, light };
 // Default export for backward compat (used by components that import { colors })
 export const colors = dark;
 
-// ── Spacing ──
+// ── Spacing (multiples de 8) ──
 
 export const spacing = {
   xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, xxxl: 28, section: 28,
@@ -96,18 +98,32 @@ export const spacing = {
 // ── Radius ──
 
 export const radius = {
-  sm: 8, md: 12, lg: 16, xl: 18, xxl: 24, full: 999, card: 16, input: 14, tab: 10, badge: 8,
+  sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, full: 999, card: 20, input: 14, tab: 12, badge: 8,
 };
+
+// ── Glassmorphism ──
+
+export const glass = {
+  bg: "rgba(255,255,255,0.05)",
+  border: "rgba(255,255,255,0.08)",
+  borderRadius: 20,
+};
+
+export function getGlassStyle(c) {
+  return {
+    backgroundColor: glass.bg,
+    borderColor: glass.border,
+    borderWidth: 1,
+    borderRadius: glass.borderRadius,
+  };
+}
 
 // ── Helpers ──
 
 export function getCardStyle(c) {
   return {
-    backgroundColor: c.bgCard,
-    borderColor: c.border,
-    borderWidth: 1,
-    borderRadius: radius.card,
-    padding: spacing.lg,
+    ...getGlassStyle(c),
+    padding: spacing.md,
   };
 }
 

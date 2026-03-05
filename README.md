@@ -166,7 +166,16 @@ Dans `mobile/src/api.js`, mettre l'IP locale de votre machine :
 ifconfig | grep "inet " | grep -v 127.0.0.1
 ```
 
-### 5. Trello (optionnel)
+### 5. Migration Supabase (outil quotidien)
+
+Pour activer les features "outil quotidien" (Dashboard, Quick notes, tâches cochables), exécuter la migration :
+
+```sql
+-- Dans le SQL Editor Supabase
+-- Contenu de supabase/migrations/001_quick_notes_and_user_settings.sql
+```
+
+### 6. Trello (optionnel)
 
 1. API Key : [trello.com/power-ups/admin](https://trello.com/power-ups/admin)
 2. Générer un Token depuis la même page
@@ -184,6 +193,21 @@ ifconfig | grep "inet " | grep -v 127.0.0.1
 | `POST` | `/api/chat` | Chat interactif avec le PM IA |
 | `POST` | `/api/push/trello` | Envoyer les tâches vers Trello |
 | `GET` | `/api/trello/boards` | Lister les boards Trello |
+
+## Benchmark IA
+
+Pour mesurer les capacités max de l’IA (analyse PM Expert + Chat PM) :
+
+```bash
+# Depuis la racine du projet, avec le venv activé
+python eval/benchmark_full.py
+```
+
+Le benchmark teste :
+- **Analyse** : idées claires, vagues (clarification), longues (stress tokens)
+- **Chat PM** : questions, modifications de tâches, priorités, conversation multi-tours
+- **Stress** : chat avec 15 tâches en contexte
+- **Débit** : 2 analyses en parallèle (peut atteindre le rate limit Groq en free tier)
 
 ## Modèle économique envisagé
 

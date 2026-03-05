@@ -4,8 +4,15 @@ from openai import AsyncOpenAI
 
 from app.config import settings
 from app.models import AnalyzeResponse, ProjectPayload
+from app.prompts import get_system_prompt_pm
 
-client = AsyncOpenAI(api_key=settings.openai_api_key)
+def _get_client():
+    if settings.ai_provider == "groq":
+        return AsyncOpenAI(
+            api_key=settings.groq_api_key,
+            base_url="https://api.groq.com/openai/v1",
+        )
+    return AsyncOpenAI(api_key=settings.openai_api_key)
 
 STRUCTURE_PROMPT = """Tu es un Scrum Master expert et chef de projet senior.
 
@@ -29,42 +36,43 @@ Règles strictes :
 - Minimum 2 tâches, maximum 15 tâches.
 - Les priorités doivent refléter l'urgence et l'impact."""
 
-ANALYZE_PROMPT = """Tu es un Product Owner senior, Chef de Projet et PM expérimenté avec 15 ans d'expérience.
+# Instructions JSON pour l'API (complètent le system prompt PM)
+ANALYZE_JSON_FORMAT = """
 
-On te soumet une idée de projet dictée à la voix (texte brut, potentiellement brouillon). Tu dois :
+### Format de sortie pour l'API (OBLIGATOIRE)
+Tu dois renvoyer UNIQUEMENT un objet JSON valide, sans texte avant ou après. Structure :
 
-1. **Comprendre l'idée** : Extrais le nom du projet et un résumé clair.
-
-2. **Donner ton avis honnête** (review) :
-   - verdict : "go" (fonce), "pivot" (bonne idée mais à ajuster), ou "drop" (mauvaise idée, explique pourquoi)
-   - confidence : score de 1 à 10 sur la viabilité
-   - strengths : 2-4 points forts de l'idée
-   - risks : 2-4 risques identifiés
-   - suggestions : 2-4 recommandations concrètes pour améliorer le projet
-   - one_liner : une phrase d'accroche résumant ton verdict (style direct, comme un mentor)
-
-3. **Découper en tâches** : Si le verdict est "go" ou "pivot", propose un plan d'action concret avec des tâches. Pour chaque tâche :
-   - title, description, assignee_role, priority ("Haute"/"Moyenne"/"Basse"), action_target ("Trello" par défaut)
-
-Sois direct, constructif, et honnête. Pas de langue de bois. Tu parles comme un mentor exigeant mais bienveillant.
-
-Format de sortie STRICTEMENT en JSON :
 {
-  "project_name": "...",
-  "summary": "...",
+  "project_name": "nom du projet",
+  "summary": "résumé en 1-2 phrases",
+  "vision": "vision claire reformulée (optionnel)",
+  "mvp_summary": "MVP en 2-4 semaines (optionnel)",
   "review": {
     "verdict": "go|pivot|drop",
     "confidence": 7,
     "strengths": ["...", "..."],
     "risks": ["...", "..."],
     "suggestions": ["...", "..."],
-    "one_liner": "..."
+    "one_liner": "phrase d'accroche",
+    "score_clarity": 7,
+    "score_market": 6,
+    "score_feasibility": 8,
+    "score_competitive": 5,
+    "score_global": 26
   },
-  "tasks": [{"title": "...", "description": "...", "assignee_role": "...", "priority": "...", "action_target": "Trello"}]
-}"""
+  "tasks": [
+    {"title": "...", "description": "...", "assignee_role": "...", "priority": "Haute|Moyenne|Basse", "action_target": "Trello", "status": "todo", "due_date": null, "completed_at": null, "order": 0}
+  ]
+}
+
+- verdict : "go" (fonce), "pivot" (à ajuster), "drop" (stop)
+- score_* : 0-10 chacun, score_global = somme des 4 (max 40)
+- tasks : minimum 2, maximum 15. Chaque tâche doit avoir status:"todo", due_date:null, completed_at:null, order:0. Priorité MoSCoW si possible (Must/Should/Could)
+"""
 
 
 async def structure_transcript(transcript: str) -> ProjectPayload:
+    client = _get_client()
     response = await client.chat.completions.create(
         model=settings.llm_model,
         messages=[
@@ -81,11 +89,19 @@ async def structure_transcript(transcript: str) -> ProjectPayload:
 
 
 async def analyze_transcript(transcript: str) -> AnalyzeResponse:
+    """Analyse une transcription avec le PM Expert (system prompt + base de connaissances)."""
+    client = _get_client()
+    system_prompt = get_system_prompt_pm() + ANALYZE_JSON_FORMAT
+    user_content = (
+        f"Voici la transcription vocale d'une idée de projet :\n\n{transcript}\n\n"
+        "Analyse ce projet selon ta méthodologie. Réponds UNIQUEMENT en JSON."
+    )
+
     response = await client.chat.completions.create(
         model=settings.llm_model,
         messages=[
-            {"role": "system", "content": ANALYZE_PROMPT},
-            {"role": "user", "content": transcript},
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_content},
         ],
         response_format={"type": "json_object"},
         temperature=0.4,
@@ -93,4 +109,16 @@ async def analyze_transcript(transcript: str) -> AnalyzeResponse:
 
     raw = response.choices[0].message.content
     data = json.loads(raw)
+
+    # Normaliser verdict (go/pivot/drop) pour compatibilité frontend
+    review = data.get("review", {})
+    verdict = review.get("verdict", "go").lower()
+    if verdict in ("go", "✅"):
+        review["verdict"] = "go"
+    elif verdict in ("pivot", "🔄"):
+        review["verdict"] = "pivot"
+    elif verdict in ("stop", "🛑", "drop"):
+        review["verdict"] = "drop"
+    data["review"] = review
+
     return AnalyzeResponse(**data)

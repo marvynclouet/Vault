@@ -1,26 +1,29 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   FlatList,
+  ScrollView,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
   Animated,
   StyleSheet,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { chatWithPM } from "../api";
 import { loadMessages, saveMessage, updateProject } from "../storage";
 import { radius, spacing } from "../theme";
 import { useTheme } from "../contexts/ThemeContext";
 
-function MessageBubble({ msg, index }) {
+function MessageBubble({ msg, index, onApplyActions, onIgnoreActions }) {
   const { colors: c } = useTheme();
   const isUser = msg.role === "user";
   const anim = useRef(new Animated.Value(0)).current;
   const slide = useRef(new Animated.Value(10)).current;
+  const hasPending = msg.pendingUpdates && Object.keys(msg.pendingUpdates).length > 0;
 
   useEffect(() => {
     Animated.parallel([
@@ -53,9 +56,28 @@ function MessageBubble({ msg, index }) {
         <Text style={[styles.bubbleText, { color: c.textPrimary }, isUser && styles.bubbleTextUser]}>
           {msg.content}
         </Text>
-        {msg.hasUpdates && (
+        {msg.hasUpdates && !hasPending && (
           <View style={[styles.updateBadge, { backgroundColor: c.successBg, borderColor: c.successBorder }]}>
             <Text style={[styles.updateText, { color: c.success }]}>✅ Projet mis à jour</Text>
+          </View>
+        )}
+        {hasPending && (
+          <View style={[styles.actionsCard, { borderColor: c.accentBorder }]}>
+            <Text style={[styles.actionsTitle, { color: c.accentLight }]}>Changements proposés</Text>
+            <View style={styles.actionsRow}>
+              <TouchableOpacity
+                onPress={() => onApplyActions?.(index)}
+                style={[styles.actionBtn, { backgroundColor: c.accent }]}
+              >
+                <Text style={styles.actionBtnText}>Appliquer</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => onIgnoreActions?.(index)}
+                style={[styles.actionBtn, { borderColor: c.border }]}
+              >
+                <Text style={[styles.actionBtnText, { color: c.textSecondary }]}>Ignorer</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
       </View>
@@ -63,8 +85,43 @@ function MessageBubble({ msg, index }) {
   );
 }
 
+// Bar 72px + cercle micro 64px positionné bottom:28 → haut du cercle ~92px du bas
+const TAB_BAR_HEIGHT = 110;
+
+function TypingDots() {
+  const dot1 = useRef(new Animated.Value(0.3)).current;
+  const dot2 = useRef(new Animated.Value(0.3)).current;
+  const dot3 = useRef(new Animated.Value(0.3)).current;
+
+  useEffect(() => {
+    const run = () => {
+      Animated.stagger(150, [
+        Animated.timing(dot1, { toValue: 1, duration: 300, useNativeDriver: true }),
+        Animated.timing(dot2, { toValue: 1, duration: 300, useNativeDriver: true }),
+        Animated.timing(dot3, { toValue: 1, duration: 300, useNativeDriver: true }),
+      ]).start(() => {
+        Animated.parallel([
+          Animated.timing(dot1, { toValue: 0.3, duration: 200, useNativeDriver: true }),
+          Animated.timing(dot2, { toValue: 0.3, duration: 200, useNativeDriver: true }),
+          Animated.timing(dot3, { toValue: 0.3, duration: 200, useNativeDriver: true }),
+        ]).start(() => run());
+      });
+    };
+    run();
+  }, []);
+
+  return (
+    <View style={{ flexDirection: "row" }}>
+      <Animated.Text style={[styles.typingDot, { opacity: dot1 }]}>.</Animated.Text>
+      <Animated.Text style={[styles.typingDot, { opacity: dot2 }]}>.</Animated.Text>
+      <Animated.Text style={[styles.typingDot, { opacity: dot3 }]}>.</Animated.Text>
+    </View>
+  );
+}
+
 export default function ChatView({ project, onProjectUpdate }) {
   const { colors: c } = useTheme();
+  const insets = useSafeAreaInsets();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -87,6 +144,33 @@ export default function ChatView({ project, onProjectUpdate }) {
       }
     });
   }, [project.id]);
+
+  const handleApplyActions = useCallback(
+    async (index) => {
+      const msg = messages[index];
+      if (!msg?.pendingUpdates) return;
+      const updates = {};
+      if (msg.pendingUpdates.summary) updates.summary = msg.pendingUpdates.summary;
+      if (msg.pendingUpdates.tasks) updates.tasks = msg.pendingUpdates.tasks;
+      if (Object.keys(updates).length > 0) {
+        await updateProject(project.id, updates);
+        onProjectUpdate?.(updates);
+        setMessages((prev) =>
+          prev.map((m, i) => (i === index ? { ...m, pendingUpdates: null, hasUpdates: true } : m))
+        );
+      }
+    },
+    [messages, project.id, onProjectUpdate]
+  );
+
+  const handleIgnoreActions = useCallback(
+    (index) => {
+      setMessages((prev) =>
+        prev.map((m, i) => (i === index ? { ...m, pendingUpdates: null } : m))
+      );
+    },
+    []
+  );
 
   const handleSend = async () => {
     const text = input.trim();
@@ -111,20 +195,11 @@ export default function ChatView({ project, onProjectUpdate }) {
         role: "assistant",
         content: result.message,
         timestamp: new Date().toISOString(),
-        hasUpdates: !!result.project_updates,
+        hasUpdates: false,
+        pendingUpdates: result.project_updates || null,
       };
       setMessages((prev) => [...prev, aiMsg]);
-      await saveMessage(project.id, aiMsg);
-
-      if (result.project_updates) {
-        const updates = {};
-        if (result.project_updates.summary) updates.summary = result.project_updates.summary;
-        if (result.project_updates.tasks) updates.tasks = result.project_updates.tasks;
-        if (Object.keys(updates).length > 0) {
-          await updateProject(project.id, updates);
-          if (onProjectUpdate) onProjectUpdate(updates);
-        }
-      }
+      await saveMessage(project.id, { ...aiMsg, pendingUpdates: undefined });
     } catch (err) {
       const errMsg = {
         role: "assistant",
@@ -149,13 +224,49 @@ export default function ChatView({ project, onProjectUpdate }) {
         ref={flatListRef}
         data={messages}
         keyExtractor={(_, i) => i.toString()}
-        renderItem={({ item, index }) => <MessageBubble msg={item} index={index} />}
+        renderItem={({ item, index }) => (
+          <MessageBubble
+            msg={item}
+            index={index}
+            onApplyActions={() => handleApplyActions(index)}
+            onIgnoreActions={() => handleIgnoreActions(index)}
+          />
+        )}
         contentContainerStyle={styles.messageList}
         showsVerticalScrollIndicator={false}
         onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+        ListFooterComponent={
+          <>
+            {sending && (
+              <View style={[styles.typingWrap, { backgroundColor: c.bgInput, borderColor: c.border }]}>
+                <View style={styles.typingRow}>
+                  <Text style={[styles.typingText, { color: c.textSecondary }]}>PM écrit</Text>
+                  <TypingDots />
+                </View>
+              </View>
+            )}
+            {messages.length === 1 && !sending ? (
+              <View style={styles.suggestionsWrap}>
+                <Text style={[styles.suggestionsLabel, { color: c.textMuted }]}>Suggestions</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.suggestionsRow}>
+                  {["Ajoute une feature", "Change les priorités", "Génère le Lean Canvas", "Estime le budget"].map((s, i) => (
+                    <TouchableOpacity
+                      key={i}
+                      onPress={() => setInput(s)}
+                      activeOpacity={0.7}
+                      style={[styles.suggestionChip, { backgroundColor: "rgba(255,255,255,0.06)", borderColor: c.border }]}
+                    >
+                      <Text style={[styles.suggestionText, { color: c.textSecondary }]}>{s}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            ) : null}
+          </>
+        }
       />
 
-      <View style={[styles.inputBar, { borderTopColor: c.border, backgroundColor: c.bgPrimary }]}>
+      <View style={[styles.inputBar, { borderTopColor: c.border, backgroundColor: c.bgPrimary, paddingBottom: Math.max(insets.bottom, 16) + TAB_BAR_HEIGHT }]}>
         <TextInput
           style={[styles.input, { backgroundColor: c.bgInput, borderColor: c.borderInput, color: c.textPrimary }]}
           placeholder="Parle à ton PM..."
@@ -221,11 +332,25 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   updateText: { fontSize: 11, fontWeight: "600" },
+  actionsCard: {
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  actionsTitle: { fontSize: 12, fontWeight: "600", marginBottom: 10 },
+  actionsRow: { flexDirection: "row", gap: 10 },
+  actionBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  actionBtnText: { color: "#fff", fontSize: 13, fontWeight: "600" },
   inputBar: {
     flexDirection: "row",
     alignItems: "flex-end",
     padding: spacing.md,
-    paddingBottom: spacing.xl,
+    paddingBottom: 24,
     borderTopWidth: 1,
     gap: 8,
   },
@@ -247,4 +372,25 @@ const styles = StyleSheet.create({
   },
   sendBtnDisabled: { opacity: 0.35 },
   sendIcon: { color: "#fff", fontSize: 18, fontWeight: "700" },
+  typingWrap: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  typingRow: { flexDirection: "row", alignItems: "center", gap: 2 },
+  typingText: { fontSize: 14 },
+  typingDot: { fontSize: 14, fontWeight: "700" },
+  suggestionsWrap: { marginTop: 16, marginBottom: 8 },
+  suggestionsLabel: { fontSize: 11, fontWeight: "600", letterSpacing: 0.5, marginBottom: 10, textTransform: "uppercase" },
+  suggestionsRow: { gap: 8, paddingRight: spacing.lg },
+  suggestionChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  suggestionText: { fontSize: 13, fontWeight: "500" },
 });

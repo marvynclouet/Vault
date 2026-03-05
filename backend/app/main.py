@@ -13,10 +13,13 @@ from app.models import (
     ProjectPayload,
     TranscriptRequest,
 )
+from app.prompts import load_system_prompt_pm
 from app.services.chat import chat_with_pm
 from app.services.structuring import analyze_transcript, structure_transcript
-from app.services.transcription import transcribe_audio
+from app.services.transcription import transcribe_audio, transcribe_audio_validated
+from app.routers.analysis import router as analysis_router
 from app.services.trello import create_trello_cards, get_boards, get_lists
+from app.services.update_project import update_project_from_transcript
 from app.services.webhook import send_webhook
 
 app = FastAPI(
@@ -33,6 +36,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.on_event("startup")
+async def startup():
+    """Charge le system prompt PM Expert au démarrage."""
+    load_system_prompt_pm()
+
+
+app.include_router(analysis_router)
+
 ALLOWED_AUDIO = {".wav", ".m4a", ".mp3", ".webm", ".ogg", ".mp4"}
 
 
@@ -43,14 +55,25 @@ def _check_audio_suffix(filename: Optional[str]) -> str:
     return suffix
 
 
-async def _save_and_transcribe(file: UploadFile) -> str:
+async def _save_and_transcribe(file: UploadFile, validate: bool = False) -> str:
+    """Transcrit l'audio. Si validate=True, vérifie langue (FR/EN) et audio audible."""
     suffix = _check_audio_suffix(file.filename)
     with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
         content = await file.read()
         tmp.write(content)
         tmp_path = Path(tmp.name)
     try:
+        if validate:
+            text, _ = await transcribe_audio_validated(tmp_path)
+            return text
         return await transcribe_audio(tmp_path)
+    except ValueError as e:
+        msg = str(e)
+        if msg.startswith("inaudible:"):
+            raise HTTPException(400, msg.replace("inaudible: ", ""))
+        if msg.startswith("language:"):
+            raise HTTPException(400, msg.replace("language: ", ""))
+        raise HTTPException(400, msg)
     finally:
         tmp_path.unlink(missing_ok=True)
 
@@ -82,9 +105,31 @@ async def api_analyze(req: TranscriptRequest) -> AnalyzeResponse:
 
 @app.post("/api/analyze/audio")
 async def api_analyze_audio(file: UploadFile) -> dict:
-    transcript = await _save_and_transcribe(file)
+    transcript = await _save_and_transcribe(file, validate=True)
     analysis = await analyze_transcript(transcript)
     return {"transcript": transcript, "analysis": analysis.model_dump()}
+
+
+class UpdateProjectRequest(BaseModel):
+    project: Dict
+    transcript: str
+
+
+@app.post("/api/update-project")
+async def api_update_project(req: UpdateProjectRequest) -> dict:
+    """Met à jour un projet existant avec une nouvelle dictée (texte)."""
+    if not req.transcript.strip():
+        raise HTTPException(400, "Le transcript est vide.")
+    p = req.project
+    merged = await update_project_from_transcript(
+        project_name=p.get("project_name", "Projet"),
+        summary=p.get("summary", ""),
+        tasks=p.get("tasks", []),
+        transcript=req.transcript,
+    )
+    return {"transcript": req.transcript, "analysis": merged}
+
+
 
 
 class ChatRequest(BaseModel):

@@ -145,9 +145,63 @@ export async function updateProfile(updates) {
   if (error) throw error;
 }
 
+// ── Quick notes ──
+
+export async function loadQuickNotes() {
+  const { data, error } = await supabase
+    .from("quick_notes")
+    .select("*")
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return (data || []).map((r) => ({
+    id: r.id,
+    content: r.content,
+    status: r.status,
+    converted_to_project: r.converted_to_project,
+    created_at: r.created_at,
+  }));
+}
+
+export async function addQuickNote(content) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Non authentifié");
+
+  const { data, error } = await supabase
+    .from("quick_notes")
+    .insert({ user_id: user.id, content: content.trim(), status: "pending" })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return { id: data.id, content: data.content, status: data.status, created_at: data.created_at };
+}
+
+export async function updateQuickNote(id, updates) {
+  const { error } = await supabase.from("quick_notes").update(updates).eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteQuickNote(id) {
+  const { error } = await supabase.from("quick_notes").delete().eq("id", id);
+  if (error) throw error;
+}
+
 // ── Helpers ──
 
+function normalizeTask(t, i) {
+  return {
+    ...t,
+    status: t.status || "todo",
+    due_date: t.due_date ?? null,
+    completed_at: t.completed_at ?? null,
+    order: t.order ?? i,
+  };
+}
+
 function mapProjectFromDb(row) {
+  const tasks = (row.tasks || []).map(normalizeTask);
   return {
     id: row.id,
     user_id: row.user_id,
@@ -155,7 +209,7 @@ function mapProjectFromDb(row) {
     summary: row.summary,
     transcript: row.transcript,
     review: row.review,
-    tasks: row.tasks || [],
+    tasks,
     synced_to: row.synced_to,
     created_at: row.created_at,
   };
