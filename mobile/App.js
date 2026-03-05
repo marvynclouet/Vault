@@ -19,32 +19,42 @@ import DictateScreen from "./src/screens/DictateScreen";
 import ProjectsScreen from "./src/screens/ProjectsScreen";
 import ProjectDetailScreen from "./src/screens/ProjectDetailScreen";
 import SettingsScreen from "./src/screens/SettingsScreen";
+import ProfileScreen from "./src/screens/ProfileScreen";
 
 const ProjectStack = createNativeStackNavigator();
+const SettingsStack = createNativeStackNavigator();
+
+const stackHeader = (c) => ({
+  headerShown: true,
+  headerTitle: "",
+  headerBackTitle: "Retour",
+  headerStyle: { backgroundColor: c.bgPrimary },
+  headerTintColor: c.accentLight,
+  headerShadowVisible: false,
+});
 
 function ProjectsNav() {
   const { colors: c } = useTheme();
   return (
     <ProjectStack.Navigator
-      screenOptions={{
-        headerShown: false,
-        contentStyle: { backgroundColor: c.bgPrimary },
-      }}
+      screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.bgPrimary } }}
     >
       <ProjectStack.Screen name="ProjectsList" component={ProjectsScreen} />
-      <ProjectStack.Screen
-        name="ProjectDetail"
-        component={ProjectDetailScreen}
-        options={{
-          headerShown: true,
-          headerTitle: "",
-          headerBackTitle: "Retour",
-          headerStyle: { backgroundColor: c.bgPrimary },
-          headerTintColor: c.accentLight,
-          headerShadowVisible: false,
-        }}
-      />
+      <ProjectStack.Screen name="ProjectDetail" component={ProjectDetailScreen} options={stackHeader(c)} />
+      <ProjectStack.Screen name="Profile" component={ProfileScreen} options={stackHeader(c)} />
     </ProjectStack.Navigator>
+  );
+}
+
+function SettingsNav() {
+  const { colors: c } = useTheme();
+  return (
+    <SettingsStack.Navigator
+      screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.bgPrimary } }}
+    >
+      <SettingsStack.Screen name="SettingsMain" component={SettingsScreen} />
+      <SettingsStack.Screen name="Profile" component={ProfileScreen} options={stackHeader(c)} />
+    </SettingsStack.Navigator>
   );
 }
 
@@ -137,7 +147,7 @@ function MainApp() {
     >
       <CurvedBottomBarExpo.Screen name="Projets" component={ProjectsNav} position="LEFT" />
       <CurvedBottomBarExpo.Screen name="Dicter" component={DictateScreen} position="CIRCLE" />
-      <CurvedBottomBarExpo.Screen name="Réglages" component={SettingsScreen} position="RIGHT" />
+      <CurvedBottomBarExpo.Screen name="Réglages" component={SettingsNav} position="RIGHT" />
     </CurvedBottomBarExpo.Navigator>
   );
 }

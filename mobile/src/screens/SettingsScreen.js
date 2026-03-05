@@ -28,7 +28,7 @@ function IntegrationRow({ icon, name, desc, badge, badgeColor, badgeBg, dimmed, 
   );
 }
 
-export default function SettingsScreen() {
+export default function SettingsScreen({ navigation }) {
   const { colors: c, isDark, toggleTheme } = useTheme();
   const { user, signOut } = useAuth();
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -51,15 +51,22 @@ export default function SettingsScreen() {
       <Text style={styles.title}>Réglages</Text>
 
       {/* Account */}
-      <Text style={styles.sectionLabel}>COMPTE</Text>
-      <View style={[styles.card, { backgroundColor: c.bgCard, borderColor: c.border }]}>
+      <Text style={[styles.sectionLabel, { color: c.textMuted }]}>COMPTE</Text>
+      <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={() => navigation.navigate("Profile")}
+        style={[styles.card, { backgroundColor: c.bgCard, borderColor: c.border }]}
+      >
         <View style={styles.accountRow}>
           <View style={[styles.avatar, { backgroundColor: c.accent }]}>
             <Text style={styles.avatarText}>{initial}</Text>
           </View>
-          <Text style={[styles.email, { color: c.textPrimary }]}>{user?.email || "—"}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.email, { color: c.textPrimary }]}>{user?.email || "—"}</Text>
+            <Text style={{ fontSize: 12, color: c.textMuted, marginTop: 2 }}>Modifier le profil →</Text>
+          </View>
         </View>
-      </View>
+      </TouchableOpacity>
 
       {/* Appearance */}
       <Text style={[styles.sectionLabel, { color: c.textMuted }]}>APPARENCE</Text>

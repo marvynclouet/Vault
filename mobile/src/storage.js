@@ -105,6 +105,46 @@ export async function saveMessage(projectId, msg) {
   if (error) throw error;
 }
 
+// ── Profile ──
+
+export async function loadProfile() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Non authentifié");
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .single();
+
+  if (error && error.code === "PGRST116") {
+    const newProfile = {
+      id: user.id,
+      username: user.email.split("@")[0],
+      display_name: user.email.split("@")[0],
+      avatar_url: "",
+      bio: "",
+    };
+    await supabase.from("profiles").insert(newProfile);
+    return newProfile;
+  }
+
+  if (error) throw error;
+  return data;
+}
+
+export async function updateProfile(updates) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Non authentifié");
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq("id", user.id);
+
+  if (error) throw error;
+}
+
 // ── Helpers ──
 
 function mapProjectFromDb(row) {

@@ -149,9 +149,13 @@ export default function ProjectsScreen({ navigation }) {
     <Animated.View style={[styles.container, { backgroundColor: c.bgPrimary, opacity: fadeAnim }]}>
       <View style={styles.header}>
         <Text style={t.h1}>Mes projets</Text>
-        <View style={[styles.avatarSmall, { backgroundColor: c.accent }]}>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => navigation.navigate("Profile")}
+          style={[styles.avatarSmall, { backgroundColor: c.accent }]}
+        >
           <Text style={styles.avatarSmallText}>{initial}</Text>
-        </View>
+        </TouchableOpacity>
       </View>
 
       {/* Stats bar — always visible, even at 0 */}
