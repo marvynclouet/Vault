@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from "react-native";
 import { MotiView, AnimatePresence } from "moti";
 import { LinearGradient } from "expo-linear-gradient";
 import { colors } from "../theme";
@@ -108,9 +108,7 @@ export default function RecordButton({ isRecording, duration, onStart, onStop, d
                   exit={{ scale: 0, opacity: 0 }}
                   transition={{ type: "spring", damping: 12 }}
                 >
-                  <View style={styles.micBody} />
-                  <View style={styles.micArc} />
-                  <View style={styles.micBase} />
+                  <Text style={styles.micEmoji}>🎙️</Text>
                 </MotiView>
               )}
             </AnimatePresence>
@@ -196,13 +194,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: "#fff",
   },
-  micBody: { width: 18, height: 28, borderRadius: 9, backgroundColor: "#fff" },
-  micArc: {
-    width: 30, height: 16,
-    borderBottomLeftRadius: 15, borderBottomRightRadius: 15,
-    borderWidth: 2.5, borderColor: "rgba(255,255,255,0.7)", borderTopWidth: 0, marginTop: -4,
-  },
-  micBase: { width: 2.5, height: 8, backgroundColor: "rgba(255,255,255,0.7)", borderRadius: 2, alignSelf: "center" },
+  micEmoji: { fontSize: 42 },
   labelArea: { alignItems: "center", marginTop: 18, minHeight: 50 },
   timer: {
     fontSize: 20, fontWeight: "700", color: colors.textPrimary,

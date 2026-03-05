@@ -1,9 +1,16 @@
-import { useRef, useEffect } from "react";
 import { NavigationContainer } from "@react-navigation/native";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { CurvedBottomBarExpo } from "react-native-curved-bottom-bar";
 import { StatusBar } from "expo-status-bar";
-import { View, Text, ActivityIndicator, Animated, StyleSheet, Platform } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ActivityIndicator,
+  StyleSheet,
+  Platform,
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 
 import { AuthProvider, useAuth } from "./src/contexts/AuthContext";
 import AuthScreen from "./src/screens/AuthScreen";
@@ -13,10 +20,7 @@ import ProjectDetailScreen from "./src/screens/ProjectDetailScreen";
 import SettingsScreen from "./src/screens/SettingsScreen";
 import { colors } from "./src/theme";
 
-const Tab = createBottomTabNavigator();
 const ProjectStack = createNativeStackNavigator();
-
-const TAB_LABELS = { Projets: "Projets", Dicter: "Dicter", "Réglages": "Config" };
 
 function ProjectsNav() {
   return (
@@ -43,104 +47,75 @@ function ProjectsNav() {
   );
 }
 
-function FloatingTabIcon({ label, focused }) {
-  const icons = { Dicter: "🎙️", Projets: "📁", "Réglages": "⚙️" };
-  const shortLabel = TAB_LABELS[label] || label;
-  const widthAnim = useRef(new Animated.Value(focused ? 1 : 0)).current;
-
-  useEffect(() => {
-    Animated.spring(widthAnim, {
-      toValue: focused ? 1 : 0,
-      useNativeDriver: false,
-      speed: 14,
-      bounciness: 4,
-    }).start();
-  }, [focused]);
-
-  const isDictate = label === "Dicter";
-
-  const bgColor = widthAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [
-      "rgba(124,58,237,0)",
-      isDictate ? colors.accent : "rgba(124,58,237,0.18)",
-    ],
-  });
-
-  const labelOpacity = widthAnim.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [0, 0, 1],
-  });
+function TabIcon({ routeName, focused }) {
+  const config = {
+    Projets: { icon: "📁", label: "Projets" },
+    Réglages: { icon: "⚙️", label: "Config" },
+  };
+  const c = config[routeName] || { icon: "?", label: routeName };
 
   return (
-    <Animated.View style={[tabStyles.iconWrap, { backgroundColor: bgColor }]}>
-      <Text style={{ fontSize: isDictate ? 22 : 18 }}>{icons[label]}</Text>
-      {focused && (
-        <Animated.Text
-          numberOfLines={1}
-          style={[
-            tabStyles.activeLabel,
-            { opacity: labelOpacity, color: isDictate ? "#fff" : colors.accentLight },
-          ]}
-        >
-          {shortLabel}
-        </Animated.Text>
-      )}
-    </Animated.View>
+    <View style={styles.tabItem}>
+      <Text style={{ fontSize: 20 }}>{c.icon}</Text>
+      <Text
+        style={[
+          styles.tabLabel,
+          { color: focused ? colors.accentLight : colors.textDisabled },
+        ]}
+      >
+        {c.label}
+      </Text>
+      {focused && <View style={styles.tabDot} />}
+    </View>
   );
 }
 
-const tabStyles = StyleSheet.create({
-  iconWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 24,
-    maxWidth: 120,
-  },
-  activeLabel: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
-});
-
 function MainApp() {
   return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarShowLabel: false,
-        tabBarStyle: {
-          position: "absolute",
-          bottom: Platform.OS === "ios" ? 28 : 16,
-          left: 32,
-          right: 32,
-          height: 62,
-          backgroundColor: "rgba(18,18,32,0.96)",
-          borderRadius: 31,
-          borderTopWidth: 0,
-          borderColor: "rgba(255,255,255,0.1)",
-          borderWidth: 1,
-          paddingHorizontal: 4,
-          paddingBottom: 0,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 8 },
-          shadowOpacity: 0.6,
-          shadowRadius: 20,
-          elevation: 24,
-        },
-        tabBarIcon: ({ focused }) => (
-          <FloatingTabIcon label={route.name} focused={focused} />
-        ),
-      })}
+    <CurvedBottomBarExpo.Navigator
+      type="DOWN"
+      style={styles.bottomBar}
+      shadowStyle={styles.shadow}
+      height={65}
+      circleWidth={56}
+      bgColor="rgba(18,18,32,0.97)"
       initialRouteName="Dicter"
+      borderTopLeftRight
+      screenOptions={{ headerShown: false }}
+      renderCircle={({ selectedTab, navigate }) => (
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => navigate("Dicter")}
+          style={styles.circleWrap}
+        >
+          <LinearGradient
+            colors={
+              selectedTab === "Dicter"
+                ? [colors.accent, "#6D28D9"]
+                : ["rgba(124,58,237,0.3)", "rgba(109,40,217,0.3)"]
+            }
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.circleBtn}
+          >
+            <Text style={styles.circleIcon}>🎙️</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      )}
+      tabBar={({ routeName, selectedTab, navigate }) => (
+        <TouchableOpacity
+          onPress={() => navigate(routeName)}
+          activeOpacity={0.7}
+          style={styles.tabTouch}
+        >
+          <TabIcon routeName={routeName} focused={routeName === selectedTab} />
+        </TouchableOpacity>
+      )}
     >
-      <Tab.Screen name="Projets" component={ProjectsNav} />
-      <Tab.Screen name="Dicter" component={DictateScreen} />
-      <Tab.Screen name="Réglages" component={SettingsScreen} />
-    </Tab.Navigator>
+      <CurvedBottomBarExpo.Screen name="Projets" component={ProjectsNav} position="LEFT" />
+      <CurvedBottomBarExpo.Screen name="Dicter" component={DictateScreen} position="CIRCLE" />
+      <CurvedBottomBarExpo.Screen name="Réglages" component={SettingsScreen} position="RIGHT" />
+    </CurvedBottomBarExpo.Navigator>
   );
 }
 
@@ -149,7 +124,7 @@ function RootNavigator() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.bgPrimary }}>
+      <View style={styles.loadingScreen}>
         <ActivityIndicator size="large" color={colors.accent} />
       </View>
     );
@@ -168,3 +143,63 @@ export default function App() {
     </AuthProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  bottomBar: {
+    borderTopColor: "rgba(255,255,255,0.06)",
+    borderTopWidth: 1,
+  },
+  shadow: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    elevation: 20,
+  },
+  circleWrap: {
+    alignItems: "center",
+    justifyContent: "center",
+    bottom: 28,
+  },
+  circleBtn: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: colors.accent,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  circleIcon: {
+    fontSize: 26,
+  },
+  tabTouch: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tabItem: {
+    alignItems: "center",
+    gap: 3,
+  },
+  tabLabel: {
+    fontSize: 10,
+    fontWeight: "600",
+  },
+  tabDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.accentLight,
+    marginTop: 2,
+  },
+  loadingScreen: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: colors.bgPrimary,
+  },
+});
