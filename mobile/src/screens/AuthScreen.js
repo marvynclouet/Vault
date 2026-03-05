@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import {
   View,
   Text,
@@ -7,11 +7,12 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Animated,
   StyleSheet,
 } from "react-native";
+import { MotiView } from "moti";
+import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "../contexts/AuthContext";
-import { colors, radius, spacing, type, fadeInUp } from "../theme";
+import { colors, radius, spacing } from "../theme";
 
 export default function AuthScreen() {
   const { signIn, signUp } = useAuth();
@@ -21,21 +22,6 @@ export default function AuthScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(12)).current;
-  const btnScale = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      fadeInUp(fadeAnim),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 350,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
 
   const handleSubmit = async () => {
     if (!email.trim() || !password.trim()) return;
@@ -61,63 +47,65 @@ export default function AuthScreen() {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <Animated.View
-        style={[
-          styles.content,
-          { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
-        ]}
+      <MotiView
+        from={{ opacity: 0, translateY: 30 }}
+        animate={{ opacity: 1, translateY: 0 }}
+        transition={{ type: "spring", damping: 18, delay: 100 }}
+        style={styles.content}
       >
-        {/* Logo */}
+        {/* Logo with glow */}
         <View style={styles.logoSection}>
-          <View style={styles.logoGlow}>
-            <View style={styles.logo}>
+          <MotiView
+            from={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", damping: 12, delay: 200 }}
+          >
+            <LinearGradient
+              colors={[colors.accent, "#6D28D9"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.logo}
+            >
               <Text style={styles.logoText}>V</Text>
-            </View>
-          </View>
-          <Text style={styles.appName}>Vault-PM</Text>
-          <Text style={styles.tagline}>Ton Chef de Projet IA</Text>
-          <Text style={styles.slogan}>Parle. L'IA structure.</Text>
+            </LinearGradient>
+          </MotiView>
+          <MotiView
+            from={{ opacity: 0, translateY: 10 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: "timing", duration: 500, delay: 400 }}
+          >
+            <Text style={styles.appName}>Vault-PM</Text>
+            <Text style={styles.tagline}>Ton Chef de Projet IA</Text>
+            <Text style={styles.slogan}>Parle. L'IA structure.</Text>
+          </MotiView>
         </View>
 
         {/* Form */}
-        <View style={styles.form}>
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            placeholderTextColor={colors.textDisabled}
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Mot de passe"
-            placeholderTextColor={colors.textDisabled}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
+        <MotiView
+          from={{ opacity: 0, translateY: 20 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: "spring", damping: 18, delay: 500 }}
+          style={styles.form}
+        >
+          <TextInput style={styles.input} placeholder="Email" placeholderTextColor={colors.textDisabled} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} />
+          <TextInput style={styles.input} placeholder="Mot de passe" placeholderTextColor={colors.textDisabled} value={password} onChangeText={setPassword} secureTextEntry />
 
           {error && (
-            <View style={styles.errorBox}>
+            <MotiView from={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} style={styles.errorBox}>
               <Text style={styles.errorText}>{error}</Text>
-            </View>
+            </MotiView>
           )}
           {success && (
-            <View style={styles.successBox}>
+            <MotiView from={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} style={styles.successBox}>
               <Text style={styles.successText}>{success}</Text>
-            </View>
+            </MotiView>
           )}
 
-          <Animated.View style={{ transform: [{ scale: btnScale }] }}>
-            <TouchableOpacity
-              onPress={handleSubmit}
-              onPressIn={() => Animated.spring(btnScale, { toValue: 0.97, useNativeDriver: true, speed: 50 }).start()}
-              onPressOut={() => Animated.spring(btnScale, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 8 }).start()}
-              disabled={loading}
-              activeOpacity={1}
+          <TouchableOpacity onPress={handleSubmit} disabled={loading} activeOpacity={0.85}>
+            <LinearGradient
+              colors={[colors.accent, "#6D28D9"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
               style={styles.submitBtn}
             >
               {loading ? (
@@ -127,32 +115,38 @@ export default function AuthScreen() {
                   {isSignUp ? "Créer mon compte" : "Se connecter"}
                 </Text>
               )}
-            </TouchableOpacity>
-          </Animated.View>
+            </LinearGradient>
+          </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={() => { setIsSignUp(!isSignUp); setError(null); setSuccess(null); }}
-            style={styles.switchBtn}
-          >
+          <TouchableOpacity onPress={() => { setIsSignUp(!isSignUp); setError(null); setSuccess(null); }} style={styles.switchBtn}>
             <Text style={styles.switchText}>
               {isSignUp ? "Déjà un compte ? Se connecter" : "Pas de compte ? Créer un compte"}
             </Text>
           </TouchableOpacity>
-        </View>
+        </MotiView>
 
         {/* Feature chips */}
-        <View style={styles.chipRow}>
-          {["🎙️ Vocal", "🤖 IA PM", "📋 Plan"].map((chip) => (
-            <View key={chip} style={styles.chip}>
+        <MotiView
+          from={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 700 }}
+          style={styles.chipRow}
+        >
+          {["🎙️ Vocal", "🤖 IA PM", "📋 Plan"].map((chip, i) => (
+            <MotiView
+              key={chip}
+              from={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ type: "spring", damping: 15, delay: 800 + i * 100 }}
+              style={styles.chip}
+            >
               <Text style={styles.chipText}>{chip}</Text>
-            </View>
+            </MotiView>
           ))}
-        </View>
+        </MotiView>
 
-        <Text style={styles.footer}>
-          🔒 Zero-Retention · Vos données restent les vôtres
-        </Text>
-      </Animated.View>
+        <Text style={styles.footer}>🔒 Zero-Retention · Vos données restent les vôtres</Text>
+      </MotiView>
     </KeyboardAvoidingView>
   );
 }
@@ -161,85 +155,26 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bgPrimary },
   content: { flex: 1, justifyContent: "center", padding: spacing.xxl },
   logoSection: { alignItems: "center", marginBottom: 48 },
-  logoGlow: {
-    shadowColor: colors.accent,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
-    shadowRadius: 30,
-    elevation: 12,
-    marginBottom: 16,
-  },
-  logo: {
-    width: 64,
-    height: 64,
-    borderRadius: 18,
-    backgroundColor: colors.accent,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  logoText: { color: "#fff", fontSize: 30, fontWeight: "700" },
-  appName: { fontSize: 26, fontWeight: "700", color: colors.textPrimary },
-  tagline: { fontSize: 14, color: colors.textSecondary, marginTop: 6 },
-  slogan: { fontSize: 14, fontStyle: "italic", color: colors.accentLight, marginTop: 4 },
+  logo: { width: 68, height: 68, borderRadius: 20, alignItems: "center", justifyContent: "center", marginBottom: 16 },
+  logoText: { color: "#fff", fontSize: 32, fontWeight: "700" },
+  appName: { fontSize: 28, fontWeight: "700", color: colors.textPrimary, textAlign: "center" },
+  tagline: { fontSize: 14, color: colors.textSecondary, marginTop: 6, textAlign: "center" },
+  slogan: { fontSize: 14, fontStyle: "italic", color: colors.accentLight, marginTop: 4, textAlign: "center" },
   form: { gap: 12 },
   input: {
-    backgroundColor: colors.bgInput,
-    borderColor: colors.borderInput,
-    borderWidth: 1,
-    borderRadius: radius.input,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-    fontSize: 15,
-    color: colors.textPrimary,
+    backgroundColor: colors.bgInput, borderColor: colors.borderInput, borderWidth: 1,
+    borderRadius: radius.input, paddingHorizontal: 18, paddingVertical: 16, fontSize: 15, color: colors.textPrimary,
   },
-  errorBox: {
-    backgroundColor: colors.dangerSoft,
-    borderColor: colors.dangerBorderSoft,
-    borderWidth: 1,
-    borderRadius: radius.sm,
-    padding: 12,
-  },
+  errorBox: { backgroundColor: colors.dangerSoft, borderColor: colors.dangerBorderSoft, borderWidth: 1, borderRadius: radius.sm, padding: 12 },
   errorText: { color: colors.danger, fontSize: 13 },
-  successBox: {
-    backgroundColor: colors.successBg,
-    borderColor: colors.successBorder,
-    borderWidth: 1,
-    borderRadius: radius.sm,
-    padding: 12,
-  },
+  successBox: { backgroundColor: colors.successBg, borderColor: colors.successBorder, borderWidth: 1, borderRadius: radius.sm, padding: 12 },
   successText: { color: colors.success, fontSize: 13 },
-  submitBtn: {
-    backgroundColor: colors.accent,
-    borderRadius: radius.input,
-    paddingVertical: 16,
-    alignItems: "center",
-    marginTop: 4,
-    shadowColor: colors.accent,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 6,
-  },
+  submitBtn: { borderRadius: radius.input, paddingVertical: 16, alignItems: "center", marginTop: 4 },
   submitText: { color: "#fff", fontSize: 16, fontWeight: "600" },
   switchBtn: { alignItems: "center", paddingVertical: 14 },
   switchText: { color: colors.accentLight, fontSize: 14, fontWeight: "500" },
-  chipRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 8,
-    marginTop: 28,
-  },
-  chip: {
-    backgroundColor: "rgba(255,255,255,0.04)",
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
+  chipRow: { flexDirection: "row", justifyContent: "center", gap: 8, marginTop: 28 },
+  chip: { backgroundColor: "rgba(255,255,255,0.04)", borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
   chipText: { fontSize: 11, color: colors.textSecondary },
-  footer: {
-    textAlign: "center",
-    fontSize: 11,
-    color: colors.textDisabled,
-    marginTop: 20,
-  },
+  footer: { textAlign: "center", fontSize: 11, color: colors.textDisabled, marginTop: 20 },
 });

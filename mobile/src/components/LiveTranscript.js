@@ -1,30 +1,10 @@
 import { useRef, useEffect } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  Animated,
-  StyleSheet,
-} from "react-native";
+import { View, Text, ScrollView, StyleSheet } from "react-native";
+import { MotiView, AnimatePresence } from "moti";
 import { colors, radius, spacing } from "../theme";
 
 export default function LiveTranscript({ lines, isRecording }) {
   const scrollRef = useRef(null);
-  const cursorOpacity = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    if (isRecording) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(cursorOpacity, { toValue: 0, duration: 500, useNativeDriver: true }),
-          Animated.timing(cursorOpacity, { toValue: 1, duration: 500, useNativeDriver: true }),
-        ])
-      ).start();
-    } else {
-      cursorOpacity.stopAnimation();
-      cursorOpacity.setValue(1);
-    }
-  }, [isRecording, cursorOpacity]);
 
   useEffect(() => {
     if (scrollRef.current && lines.length > 0) {
@@ -35,37 +15,48 @@ export default function LiveTranscript({ lines, isRecording }) {
   if (lines.length === 0 && !isRecording) return null;
 
   return (
-    <View style={styles.card}>
+    <MotiView
+      from={{ opacity: 0, translateY: 12 }}
+      animate={{ opacity: 1, translateY: 0 }}
+      transition={{ type: "timing", duration: 400 }}
+      style={styles.card}
+    >
       <View style={styles.header}>
         <Text style={styles.heading}>TRANSCRIPTION EN DIRECT</Text>
-        {isRecording && (
-          <View style={styles.liveBadge}>
-            <View style={styles.liveDot} />
-            <Text style={styles.liveText}>LIVE</Text>
-          </View>
-        )}
+        <AnimatePresence>
+          {isRecording && (
+            <MotiView
+              from={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              style={styles.liveBadge}
+            >
+              <MotiView
+                from={{ opacity: 0.4 }}
+                animate={{ opacity: 1 }}
+                transition={{ type: "timing", duration: 600, loop: true, repeatReverse: true }}
+                style={styles.liveDot}
+              />
+              <Text style={styles.liveText}>LIVE</Text>
+            </MotiView>
+          )}
+        </AnimatePresence>
       </View>
 
-      <ScrollView
-        ref={scrollRef}
-        style={styles.scrollArea}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView ref={scrollRef} style={{ maxHeight: 160 }} showsVerticalScrollIndicator={false}>
         {lines.length === 0 && isRecording ? (
-          <View style={styles.waitingRow}>
+          <MotiView
+            from={{ opacity: 0 }}
+            animate={{ opacity: 0.6 }}
+            transition={{ type: "timing", duration: 800, loop: true, repeatReverse: true }}
+          >
             <Text style={styles.waitingText}>Tes mots apparaîtront ici...</Text>
-            <Animated.View style={[styles.cursor, { opacity: cursorOpacity }]} />
-          </View>
+          </MotiView>
         ) : (
-          <View style={styles.textContainer}>
-            <Text style={styles.transcriptText}>{lines.join(" ")}</Text>
-            {isRecording && (
-              <Animated.View style={[styles.cursorInline, { opacity: cursorOpacity }]} />
-            )}
-          </View>
+          <Text style={styles.transcriptText}>{lines.join(" ")}</Text>
         )}
       </ScrollView>
-    </View>
+    </MotiView>
   );
 }
 
@@ -78,72 +69,15 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     marginBottom: spacing.lg,
   },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  heading: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: colors.accentLight,
-    letterSpacing: 0.9,
-  },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
+  heading: { fontSize: 11, fontWeight: "600", color: colors.accentLight, letterSpacing: 0.9 },
   liveBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    backgroundColor: colors.dangerBg,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: radius.badge,
-    borderWidth: 1,
-    borderColor: colors.dangerBorder,
+    flexDirection: "row", alignItems: "center", gap: 5,
+    backgroundColor: colors.dangerBg, paddingHorizontal: 8, paddingVertical: 3,
+    borderRadius: 8, borderWidth: 1, borderColor: colors.dangerBorder,
   },
-  liveDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.danger,
-  },
-  liveText: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: colors.danger,
-  },
-  scrollArea: { maxHeight: 160 },
-  waitingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  waitingText: {
-    color: colors.textDisabled,
-    fontSize: 14,
-    fontStyle: "italic",
-  },
-  textContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "center",
-  },
-  transcriptText: {
-    color: colors.textPrimary,
-    fontSize: 15,
-    lineHeight: 24,
-  },
-  cursor: {
-    width: 2,
-    height: 18,
-    backgroundColor: colors.accent,
-    borderRadius: 1,
-  },
-  cursorInline: {
-    width: 2,
-    height: 18,
-    backgroundColor: colors.accent,
-    borderRadius: 1,
-    marginLeft: 2,
-  },
+  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.danger },
+  liveText: { fontSize: 10, fontWeight: "700", color: colors.danger },
+  waitingText: { color: colors.textDisabled, fontSize: 14, fontStyle: "italic" },
+  transcriptText: { color: colors.textPrimary, fontSize: 15, lineHeight: 24 },
 });
