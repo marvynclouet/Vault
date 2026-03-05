@@ -4,7 +4,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { StatusBar } from "expo-status-bar";
 import { View, Text, ActivityIndicator, Animated, StyleSheet, Platform } from "react-native";
-import { TamaguiProvider, Theme } from "tamagui";
+import { TamaguiProvider } from "tamagui";
 
 import tamaguiConfig from "./src/lib/tamagui.config";
 import { AuthProvider, useAuth } from "./src/contexts/AuthContext";
@@ -162,15 +162,13 @@ function RootNavigator() {
 
 export default function App() {
   return (
-    <TamaguiProvider config={tamaguiConfig}>
-      <Theme name="dark_vault">
-        <AuthProvider>
-          <NavigationContainer>
-            <StatusBar style="light" />
-            <RootNavigator />
-          </NavigationContainer>
-        </AuthProvider>
-      </Theme>
+    <TamaguiProvider config={tamaguiConfig} defaultTheme="dark">
+      <AuthProvider>
+        <NavigationContainer>
+          <StatusBar style="light" />
+          <RootNavigator />
+        </NavigationContainer>
+      </AuthProvider>
     </TamaguiProvider>
   );
 }

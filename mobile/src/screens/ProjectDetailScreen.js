@@ -1,19 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-  Animated,
-  StyleSheet,
-} from "react-native";
+import { ScrollView, Animated, StyleSheet, Alert } from "react-native";
+import { YStack, XStack, Text, Card, Button, Separator } from "tamagui";
 import { getProject, updateProject } from "../storage";
 import { pushToTrello } from "../api";
 import TaskCard from "../components/TaskCard";
 import ChatView from "../components/ChatView";
-import { colors, radius, spacing, type, cardStyle } from "../theme";
+import { colors } from "../theme";
 
 const TABS = [
   { key: "overview", label: "Résumé" },
@@ -50,11 +42,7 @@ export default function ProjectDetailScreen({ route }) {
     if (!project) return;
     setPushing(true);
     try {
-      const result = await pushToTrello({
-        project_name: project.project_name,
-        summary: project.summary,
-        tasks: project.tasks,
-      });
+      const result = await pushToTrello({ project_name: project.project_name, summary: project.summary, tasks: project.tasks });
       await updateProject(project.id, { synced_to: "Trello" });
       setProject((p) => ({ ...p, synced_to: "Trello" }));
       Alert.alert("Trello", `${result.cards_created?.length || 0} carte(s) créée(s).`);
@@ -67,9 +55,9 @@ export default function ProjectDetailScreen({ route }) {
 
   if (!project) {
     return (
-      <View style={styles.loading}>
-        <ActivityIndicator color={colors.accent} />
-      </View>
+      <YStack flex={1} justifyContent="center" alignItems="center" backgroundColor={colors.bgPrimary}>
+        <Text color={colors.textMuted}>Chargement...</Text>
+      </YStack>
     );
   }
 
@@ -79,106 +67,130 @@ export default function ProjectDetailScreen({ route }) {
   return (
     <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.projectName} numberOfLines={1}>{project.project_name}</Text>
-        <View style={[styles.verdictChip, { backgroundColor: v.bg, borderColor: v.border }]}>
-          <Text style={{ fontSize: 12 }}>{v.icon}</Text>
-          <Text style={[styles.verdictChipText, { color: v.color }]}>{v.label}</Text>
-        </View>
-      </View>
+      <XStack alignItems="center" justifyContent="space-between" paddingHorizontal={20} paddingTop={4} paddingBottom={12}>
+        <Text color={colors.textPrimary} fontSize={20} fontWeight="700" flex={1} marginRight={10} numberOfLines={1}>
+          {project.project_name}
+        </Text>
+        <YStack flexDirection="row" alignItems="center" gap={5} backgroundColor={v.bg} borderColor={v.border} borderWidth={1} borderRadius={8} paddingHorizontal={10} paddingVertical={5}>
+          <Text fontSize={12}>{v.icon}</Text>
+          <Text color={v.color} fontSize={11} fontWeight="700">{v.label}</Text>
+        </YStack>
+      </XStack>
 
       {/* Tab bar */}
-      <View style={styles.tabBarOuter}>
-        <View style={styles.tabBar}>
+      <YStack paddingHorizontal={20} paddingBottom={12}>
+        <XStack backgroundColor="rgba(255,255,255,0.04)" borderRadius={12} padding={4}>
           {TABS.map((tab) => (
-            <TouchableOpacity
+            <Button
               key={tab.key}
+              flex={1}
+              size="$3"
+              backgroundColor={activeTab === tab.key ? colors.accentBg : "transparent"}
+              color={activeTab === tab.key ? colors.accentLight : colors.textMuted}
+              fontWeight="600"
+              fontSize={13}
+              borderRadius={10}
+              pressStyle={{ opacity: 0.8 }}
               onPress={() => setActiveTab(tab.key)}
-              activeOpacity={0.7}
-              style={[styles.tab, activeTab === tab.key && styles.tabActive]}
             >
-              <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>
-                {tab.label}
-              </Text>
-            </TouchableOpacity>
+              {tab.label}
+            </Button>
           ))}
-        </View>
-      </View>
+        </XStack>
+      </YStack>
 
       {/* Overview */}
       {activeTab === "overview" && (
         <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabInner} showsVerticalScrollIndicator={false}>
-          <Text style={styles.summary}>{project.summary}</Text>
+          <Text color={colors.textSecondary} fontSize={15} lineHeight={23} marginBottom={20}>
+            {project.summary}
+          </Text>
 
           {review && (
-            <View style={[styles.reviewCard, { backgroundColor: v.bg, borderColor: v.border }]}>
-              <Text style={styles.oneLiner}>{review.one_liner}</Text>
+            <Card backgroundColor={v.bg} borderColor={v.border} borderWidth={1} borderRadius={16} padding="$4" marginBottom={20}>
+              <Text color={colors.textPrimary} fontSize={15} fontWeight="600" lineHeight={22} marginBottom={16}>
+                {review.one_liner}
+              </Text>
 
-              <View style={styles.confidenceRow}>
-                <Text style={styles.confidenceLabel}>Confiance</Text>
-                <View style={styles.confidenceTrack}>
-                  <View style={[styles.confidenceFill, { width: `${(review.confidence || 0) * 10}%`, backgroundColor: v.color }]} />
-                </View>
-                <Text style={[styles.confidenceValue, { color: v.color }]}>{review.confidence}/10</Text>
-              </View>
+              <XStack alignItems="center" gap={8} marginBottom={18}>
+                <Text color={colors.textMuted} fontSize={12}>Confiance</Text>
+                <YStack flex={1} height={6} borderRadius={3} backgroundColor="rgba(255,255,255,0.06)" overflow="hidden">
+                  <YStack height="100%" borderRadius={3} backgroundColor={v.color} width={`${(review.confidence || 0) * 10}%`} />
+                </YStack>
+                <Text color={v.color} fontSize={13} fontWeight="700">{review.confidence}/10</Text>
+              </XStack>
 
-              <View style={styles.reviewCols}>
-                <View style={styles.reviewCol}>
-                  <Text style={[styles.colTitle, { color: colors.success }]}>✅ Forces</Text>
+              <XStack gap={12}>
+                <YStack flex={1}>
+                  <Text color={colors.success} fontSize={11} fontWeight="700" letterSpacing={0.5} marginBottom={8}>
+                    ✅ Forces
+                  </Text>
                   {review.strengths?.map((s, i) => (
-                    <View key={i} style={styles.bulletCard}>
-                      <Text style={styles.bulletText}>{s}</Text>
-                    </View>
+                    <Card key={i} backgroundColor="rgba(255,255,255,0.03)" borderRadius={8} padding={8} marginBottom={4}>
+                      <Text color={colors.textSecondary} fontSize={12} lineHeight={17}>{s}</Text>
+                    </Card>
                   ))}
-                </View>
-                <View style={styles.reviewCol}>
-                  <Text style={[styles.colTitle, { color: colors.danger }]}>⚠️ Risques</Text>
+                </YStack>
+                <YStack flex={1}>
+                  <Text color={colors.danger} fontSize={11} fontWeight="700" letterSpacing={0.5} marginBottom={8}>
+                    ⚠️ Risques
+                  </Text>
                   {review.risks?.map((r, i) => (
-                    <View key={i} style={styles.bulletCard}>
-                      <Text style={styles.bulletText}>{r}</Text>
-                    </View>
+                    <Card key={i} backgroundColor="rgba(255,255,255,0.03)" borderRadius={8} padding={8} marginBottom={4}>
+                      <Text color={colors.textSecondary} fontSize={12} lineHeight={17}>{r}</Text>
+                    </Card>
                   ))}
-                </View>
-              </View>
+                </YStack>
+              </XStack>
 
               {review.suggestions?.length > 0 && (
-                <View style={styles.suggestionsSection}>
-                  <Text style={[styles.colTitle, { color: colors.accentLight }]}>💡 Recommandations</Text>
+                <YStack marginTop={16} paddingTop={16} borderTopWidth={1} borderTopColor="rgba(255,255,255,0.04)">
+                  <Text color={colors.accentLight} fontSize={11} fontWeight="700" letterSpacing={0.5} marginBottom={8}>
+                    💡 Recommandations
+                  </Text>
                   {review.suggestions.map((s, i) => (
-                    <View key={i} style={styles.bulletCard}>
-                      <Text style={styles.bulletText}>{s}</Text>
-                    </View>
+                    <Card key={i} backgroundColor="rgba(255,255,255,0.03)" borderRadius={8} padding={8} marginBottom={4}>
+                      <Text color={colors.textSecondary} fontSize={12} lineHeight={17}>{s}</Text>
+                    </Card>
                   ))}
-                </View>
+                </YStack>
               )}
-            </View>
+            </Card>
           )}
 
-          {/* Collapsible transcript */}
-          <TouchableOpacity
+          <Card
+            backgroundColor={colors.bgCard}
+            borderColor={colors.border}
+            borderWidth={1}
+            borderRadius={16}
+            padding="$3.5"
+            pressStyle={{ opacity: 0.8 }}
             onPress={() => setTranscriptOpen(!transcriptOpen)}
-            activeOpacity={0.7}
-            style={styles.transcriptToggle}
           >
-            <Text style={styles.transcriptToggleText}>
-              📝 {transcriptOpen ? "Masquer" : "Voir"} la dictée originale
-            </Text>
-            <Text style={styles.transcriptChevron}>{transcriptOpen ? "▲" : "▼"}</Text>
-          </TouchableOpacity>
+            <XStack justifyContent="space-between" alignItems="center">
+              <Text color={colors.textSecondary} fontSize={13} fontWeight="600">
+                📝 {transcriptOpen ? "Masquer" : "Voir"} la dictée originale
+              </Text>
+              <Text color={colors.textMuted} fontSize={10}>{transcriptOpen ? "▲" : "▼"}</Text>
+            </XStack>
+          </Card>
+
           {transcriptOpen && (
-            <View style={styles.transcriptBox}>
-              <Text style={styles.transcriptText}>"{project.transcript}"</Text>
-            </View>
+            <Card backgroundColor="rgba(255,255,255,0.02)" borderRadius={12} padding="$3.5" marginTop={4}>
+              <Text color={colors.textSecondary} fontSize={13} lineHeight={20} fontStyle="italic">
+                "{project.transcript}"
+              </Text>
+            </Card>
           )}
 
-          <View style={{ height: 80 }} />
+          <YStack height={120} />
         </ScrollView>
       )}
 
       {/* Tasks */}
       {activeTab === "tasks" && (
         <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabInner} showsVerticalScrollIndicator={false}>
-          <Text style={styles.sectionLabel}>
+          <Text color={colors.accentLight} fontSize={11} fontWeight="600" letterSpacing={0.9} marginBottom={12}>
             PLAN D'ACTION — {project.tasks?.length || 0} TÂCHES
           </Text>
 
@@ -186,41 +198,55 @@ export default function ProjectDetailScreen({ route }) {
             <TaskCard key={i} task={task} index={i} />
           ))}
 
-          <View style={{ marginTop: spacing.section }}>
-            <Text style={styles.sectionLabel}>EXPORTER</Text>
+          <YStack marginTop={28}>
+            <Text color={colors.accentLight} fontSize={11} fontWeight="600" letterSpacing={0.9} marginBottom={12}>
+              EXPORTER
+            </Text>
 
-            <TouchableOpacity
+            <Card
+              backgroundColor={colors.bgCard}
+              borderColor={project.synced_to === "Trello" ? colors.successBorder : colors.border}
+              borderWidth={1}
+              borderRadius={16}
+              padding="$3.5"
+              marginBottom={8}
+              pressStyle={{ scale: 0.98 }}
               onPress={handlePushTrello}
               disabled={pushing || project.synced_to === "Trello"}
-              activeOpacity={0.7}
-              style={[styles.exportBtn, project.synced_to === "Trello" && styles.exportBtnDone]}
             >
-              {pushing ? (
-                <ActivityIndicator size="small" color={colors.accent} />
-              ) : (
-                <>
-                  <Text style={styles.exportIcon}>📋</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.exportTitle}>Trello</Text>
-                    <Text style={styles.exportDesc}>
-                      {project.synced_to === "Trello" ? "Déjà synchronisé" : "Créer les cartes"}
-                    </Text>
-                  </View>
-                  {project.synced_to === "Trello" && <Text style={styles.checkmark}>✓</Text>}
-                </>
-              )}
-            </TouchableOpacity>
+              <XStack alignItems="center" gap={14}>
+                <Text fontSize={22}>📋</Text>
+                <YStack flex={1}>
+                  <Text color={colors.textPrimary} fontSize={14} fontWeight="600">Trello</Text>
+                  <Text color={colors.textMuted} fontSize={11} marginTop={2}>
+                    {project.synced_to === "Trello" ? "Déjà synchronisé" : "Créer les cartes"}
+                  </Text>
+                </YStack>
+                {project.synced_to === "Trello" && (
+                  <Text color={colors.success} fontSize={18} fontWeight="700">✓</Text>
+                )}
+              </XStack>
+            </Card>
 
-            <View style={[styles.exportBtn, { opacity: 0.4 }]}>
-              <Text style={styles.exportIcon}>📝</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.exportTitle}>Jira / Notion / Asana</Text>
-                <Text style={styles.exportDesc}>Bientôt</Text>
-              </View>
-            </View>
-          </View>
+            <Card
+              backgroundColor={colors.bgCard}
+              borderColor={colors.border}
+              borderWidth={1}
+              borderRadius={16}
+              padding="$3.5"
+              opacity={0.4}
+            >
+              <XStack alignItems="center" gap={14}>
+                <Text fontSize={22}>📝</Text>
+                <YStack flex={1}>
+                  <Text color={colors.textPrimary} fontSize={14} fontWeight="600">Jira / Notion / Asana</Text>
+                  <Text color={colors.textMuted} fontSize={11} marginTop={2}>Bientôt</Text>
+                </YStack>
+              </XStack>
+            </Card>
+          </YStack>
 
-          <View style={{ height: 80 }} />
+          <YStack height={120} />
         </ScrollView>
       )}
 
@@ -234,98 +260,6 @@ export default function ProjectDetailScreen({ route }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bgPrimary },
-  loading: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.bgPrimary },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.md,
-  },
-  projectName: { ...type.h2, flex: 1, marginRight: 10 },
-  verdictChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: radius.badge,
-    borderWidth: 1,
-  },
-  verdictChipText: { fontSize: 11, fontWeight: "700" },
-  tabBarOuter: {
-    paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.md,
-  },
-  tabBar: {
-    flexDirection: "row",
-    backgroundColor: "rgba(255,255,255,0.04)",
-    borderRadius: radius.md,
-    padding: 4,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: "center",
-    borderRadius: radius.tab,
-  },
-  tabActive: { backgroundColor: colors.accentBg },
-  tabText: { fontSize: 13, fontWeight: "600", color: colors.textMuted },
-  tabTextActive: { color: colors.accentLight },
   tabContent: { flex: 1 },
-  tabInner: { padding: spacing.xl },
-  summary: { ...type.sub, lineHeight: 23, marginBottom: spacing.xl },
-  reviewCard: {
-    borderWidth: 1,
-    borderRadius: radius.card,
-    padding: spacing.xl,
-    marginBottom: spacing.xl,
-  },
-  oneLiner: { fontSize: 15, fontWeight: "600", color: colors.textPrimary, lineHeight: 22, marginBottom: 16 },
-  confidenceRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 18 },
-  confidenceLabel: { fontSize: 12, color: colors.textMuted },
-  confidenceTrack: { flex: 1, height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.06)", overflow: "hidden" },
-  confidenceFill: { height: "100%", borderRadius: 3 },
-  confidenceValue: { fontSize: 13, fontWeight: "700" },
-  reviewCols: { flexDirection: "row", gap: 12 },
-  reviewCol: { flex: 1 },
-  colTitle: { fontSize: 11, fontWeight: "700", letterSpacing: 0.5, marginBottom: 8 },
-  bulletCard: {
-    backgroundColor: "rgba(255,255,255,0.03)",
-    borderRadius: radius.sm,
-    padding: 8,
-    marginBottom: 4,
-  },
-  bulletText: { fontSize: 12, color: colors.textSecondary, lineHeight: 17 },
-  suggestionsSection: { marginTop: 16, paddingTop: 16, borderTopColor: "rgba(255,255,255,0.04)", borderTopWidth: 1 },
-  transcriptToggle: {
-    ...cardStyle,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 4,
-  },
-  transcriptToggleText: { fontSize: 13, fontWeight: "600", color: colors.textSecondary },
-  transcriptChevron: { fontSize: 10, color: colors.textMuted },
-  transcriptBox: {
-    backgroundColor: "rgba(255,255,255,0.02)",
-    borderRadius: radius.md,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
-  },
-  transcriptText: { fontSize: 13, color: colors.textSecondary, lineHeight: 20, fontStyle: "italic" },
-  sectionLabel: { ...type.label, marginBottom: 12 },
-  exportBtn: {
-    ...cardStyle,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    marginBottom: spacing.sm,
-  },
-  exportBtnDone: { borderColor: colors.successBorder },
-  exportIcon: { fontSize: 22 },
-  exportTitle: { fontSize: 14, fontWeight: "600", color: colors.textPrimary },
-  exportDesc: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
-  checkmark: { fontSize: 18, color: colors.success, fontWeight: "700" },
+  tabInner: { padding: 20 },
 });

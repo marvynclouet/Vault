@@ -1,12 +1,7 @@
 import { useRef, useEffect } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  Animated,
-  StyleSheet,
-} from "react-native";
-import { colors, radius, spacing } from "../theme";
+import { ScrollView, Animated } from "react-native";
+import { YStack, XStack, Text, Card } from "tamagui";
+import { colors } from "../theme";
 
 export default function LiveTranscript({ lines, isRecording }) {
   const scrollRef = useRef(null);
@@ -35,115 +30,58 @@ export default function LiveTranscript({ lines, isRecording }) {
   if (lines.length === 0 && !isRecording) return null;
 
   return (
-    <View style={styles.card}>
-      <View style={styles.header}>
-        <Text style={styles.heading}>TRANSCRIPTION EN DIRECT</Text>
+    <Card
+      backgroundColor="rgba(255,255,255,0.03)"
+      borderColor="rgba(255,255,255,0.05)"
+      borderWidth={1}
+      borderRadius={16}
+      padding="$3.5"
+      marginBottom="$3"
+    >
+      <XStack justifyContent="space-between" alignItems="center" marginBottom={12}>
+        <Text color={colors.accentLight} fontSize={11} fontWeight="600" letterSpacing={0.9}>
+          TRANSCRIPTION EN DIRECT
+        </Text>
         {isRecording && (
-          <View style={styles.liveBadge}>
-            <View style={styles.liveDot} />
-            <Text style={styles.liveText}>LIVE</Text>
-          </View>
+          <XStack
+            alignItems="center"
+            gap={5}
+            backgroundColor={colors.dangerBg}
+            paddingHorizontal={8}
+            paddingVertical={3}
+            borderRadius={8}
+            borderWidth={1}
+            borderColor={colors.dangerBorder}
+          >
+            <YStack width={6} height={6} borderRadius={3} backgroundColor={colors.danger} />
+            <Text color={colors.danger} fontSize={10} fontWeight="700">LIVE</Text>
+          </XStack>
         )}
-      </View>
+      </XStack>
 
-      <ScrollView
-        ref={scrollRef}
-        style={styles.scrollArea}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView ref={scrollRef} style={{ maxHeight: 160 }} showsVerticalScrollIndicator={false}>
         {lines.length === 0 && isRecording ? (
-          <View style={styles.waitingRow}>
-            <Text style={styles.waitingText}>Tes mots apparaîtront ici...</Text>
-            <Animated.View style={[styles.cursor, { opacity: cursorOpacity }]} />
-          </View>
+          <XStack alignItems="center" gap={4}>
+            <Text color={colors.textDisabled} fontSize={14} fontStyle="italic">
+              Tes mots apparaîtront ici...
+            </Text>
+            <Animated.View
+              style={{ width: 2, height: 18, backgroundColor: colors.accent, borderRadius: 1, opacity: cursorOpacity }}
+            />
+          </XStack>
         ) : (
-          <View style={styles.textContainer}>
-            <Text style={styles.transcriptText}>{lines.join(" ")}</Text>
+          <XStack flexWrap="wrap" alignItems="center">
+            <Text color={colors.textPrimary} fontSize={15} lineHeight={24}>
+              {lines.join(" ")}
+            </Text>
             {isRecording && (
-              <Animated.View style={[styles.cursorInline, { opacity: cursorOpacity }]} />
+              <Animated.View
+                style={{ width: 2, height: 18, backgroundColor: colors.accent, borderRadius: 1, marginLeft: 2, opacity: cursorOpacity }}
+              />
             )}
-          </View>
+          </XStack>
         )}
       </ScrollView>
-    </View>
+    </Card>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: "rgba(255,255,255,0.03)",
-    borderColor: "rgba(255,255,255,0.05)",
-    borderWidth: 1,
-    borderRadius: radius.card,
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  heading: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: colors.accentLight,
-    letterSpacing: 0.9,
-  },
-  liveBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    backgroundColor: colors.dangerBg,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: radius.badge,
-    borderWidth: 1,
-    borderColor: colors.dangerBorder,
-  },
-  liveDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.danger,
-  },
-  liveText: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: colors.danger,
-  },
-  scrollArea: { maxHeight: 160 },
-  waitingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  waitingText: {
-    color: colors.textDisabled,
-    fontSize: 14,
-    fontStyle: "italic",
-  },
-  textContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "center",
-  },
-  transcriptText: {
-    color: colors.textPrimary,
-    fontSize: 15,
-    lineHeight: 24,
-  },
-  cursor: {
-    width: 2,
-    height: 18,
-    backgroundColor: colors.accent,
-    borderRadius: 1,
-  },
-  cursorInline: {
-    width: 2,
-    height: 18,
-    backgroundColor: colors.accent,
-    borderRadius: 1,
-    marginLeft: 2,
-  },
-});

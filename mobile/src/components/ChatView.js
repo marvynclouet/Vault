@@ -1,21 +1,17 @@
 import { useState, useRef, useEffect } from "react";
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
   FlatList,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
   Animated,
   StyleSheet,
 } from "react-native";
+import { YStack, XStack, Text, Input, Button, Card } from "tamagui";
 import { chatWithPM } from "../api";
 import { loadMessages, saveMessage, updateProject } from "../storage";
-import { colors, radius, spacing } from "../theme";
+import { colors } from "../theme";
 
-function MessageBubble({ msg, index }) {
+function MessageBubble({ msg }) {
   const isUser = msg.role === "user";
   const anim = useRef(new Animated.Value(0)).current;
   const slide = useRef(new Animated.Value(10)).current;
@@ -36,20 +32,38 @@ function MessageBubble({ msg, index }) {
       ]}
     >
       {!isUser && (
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>PM</Text>
-        </View>
+        <YStack width={28} height={28} borderRadius={14} backgroundColor={colors.accentBg} alignItems="center" justifyContent="center" marginTop={2}>
+          <Text fontSize={9} fontWeight="700" color={colors.accentLight}>PM</Text>
+        </YStack>
       )}
-      <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAi]}>
-        <Text style={[styles.bubbleText, isUser && styles.bubbleTextUser]}>
+      <YStack
+        maxWidth="80%"
+        padding={14}
+        borderRadius={18}
+        backgroundColor={isUser ? colors.accent : colors.bgInput}
+        borderColor={isUser ? undefined : colors.border}
+        borderWidth={isUser ? 0 : 1}
+        borderBottomRightRadius={isUser ? 4 : 18}
+        borderBottomLeftRadius={isUser ? 18 : 4}
+      >
+        <Text fontSize={14} lineHeight={21} color={isUser ? "#fff" : colors.textPrimary}>
           {msg.content}
         </Text>
         {msg.hasUpdates && (
-          <View style={styles.updateBadge}>
-            <Text style={styles.updateText}>✅ Projet mis à jour</Text>
-          </View>
+          <Card
+            backgroundColor={colors.successBg}
+            borderColor={colors.successBorder}
+            borderWidth={1}
+            borderRadius={10}
+            paddingHorizontal={10}
+            paddingVertical={5}
+            marginTop={8}
+            alignSelf="flex-start"
+          >
+            <Text fontSize={11} fontWeight="600" color={colors.success}>✅ Projet mis à jour</Text>
+          </Card>
         )}
-      </View>
+      </YStack>
     </Animated.View>
   );
 }
@@ -59,7 +73,6 @@ export default function ChatView({ project, onProjectUpdate }) {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const flatListRef = useRef(null);
-  const sendScale = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     loadMessages(project.id).then((msgs) => {
@@ -139,114 +152,58 @@ export default function ChatView({ project, onProjectUpdate }) {
         ref={flatListRef}
         data={messages}
         keyExtractor={(_, i) => i.toString()}
-        renderItem={({ item, index }) => <MessageBubble msg={item} index={index} />}
+        renderItem={({ item }) => <MessageBubble msg={item} />}
         contentContainerStyle={styles.messageList}
         showsVerticalScrollIndicator={false}
         onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
       />
 
-      <View style={styles.inputBar}>
-        <TextInput
-          style={styles.input}
+      <XStack
+        padding="$2.5"
+        paddingBottom="$4"
+        borderTopWidth={1}
+        borderTopColor={colors.border}
+        backgroundColor={colors.bgPrimary}
+        gap={8}
+        alignItems="flex-end"
+      >
+        <Input
+          flex={1}
+          size="$4"
           placeholder="Parle à ton PM..."
-          placeholderTextColor={colors.textDisabled}
           value={input}
           onChangeText={setInput}
           multiline
           maxLength={2000}
           editable={!sending}
+          backgroundColor={colors.bgInput}
+          borderColor={colors.borderInput}
+          color={colors.textPrimary}
+          placeholderTextColor={colors.textDisabled}
+          borderRadius={24}
+          maxHeight={100}
+          focusStyle={{ borderColor: colors.accentBorder }}
         />
-        <Animated.View style={{ transform: [{ scale: sendScale }] }}>
-          <TouchableOpacity
-            onPress={handleSend}
-            onPressIn={() => Animated.spring(sendScale, { toValue: 0.9, useNativeDriver: true, speed: 50 }).start()}
-            onPressOut={() => Animated.spring(sendScale, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 8 }).start()}
-            disabled={!input.trim() || sending}
-            activeOpacity={1}
-            style={[styles.sendBtn, (!input.trim() || sending) && styles.sendBtnDisabled]}
-          >
-            {sending ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Text style={styles.sendIcon}>↑</Text>
-            )}
-          </TouchableOpacity>
-        </Animated.View>
-      </View>
+        <Button
+          size="$3"
+          circular
+          backgroundColor={colors.accent}
+          opacity={!input.trim() || sending ? 0.35 : 1}
+          disabled={!input.trim() || sending}
+          onPress={handleSend}
+          pressStyle={{ scale: 0.9 }}
+        >
+          <Text color="#fff" fontSize={16} fontWeight="700">↑</Text>
+        </Button>
+      </XStack>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  messageList: { padding: spacing.lg, paddingBottom: 8 },
+  messageList: { padding: 16, paddingBottom: 8 },
   bubbleWrap: { flexDirection: "row", marginBottom: 12, gap: 8 },
   bubbleWrapUser: { justifyContent: "flex-end" },
   bubbleWrapAi: { justifyContent: "flex-start" },
-  avatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.accentBg,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 2,
-  },
-  avatarText: { fontSize: 9, fontWeight: "700", color: colors.accentLight },
-  bubble: { maxWidth: "80%", padding: 14, borderRadius: radius.xl },
-  bubbleUser: {
-    backgroundColor: colors.accent,
-    borderBottomRightRadius: 4,
-  },
-  bubbleAi: {
-    backgroundColor: colors.bgInput,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderBottomLeftRadius: 4,
-  },
-  bubbleText: { fontSize: 14, lineHeight: 21, color: colors.textPrimary },
-  bubbleTextUser: { color: "#fff" },
-  updateBadge: {
-    marginTop: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: radius.tab,
-    backgroundColor: colors.successBg,
-    borderColor: colors.successBorder,
-    borderWidth: 1,
-    alignSelf: "flex-start",
-  },
-  updateText: { fontSize: 11, fontWeight: "600", color: colors.success },
-  inputBar: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    padding: spacing.md,
-    paddingBottom: spacing.xl,
-    borderTopColor: colors.border,
-    borderTopWidth: 1,
-    backgroundColor: colors.bgPrimary,
-    gap: 8,
-  },
-  input: {
-    flex: 1,
-    backgroundColor: colors.bgInput,
-    borderColor: colors.borderInput,
-    borderWidth: 1,
-    borderRadius: radius.xxl,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 14,
-    color: colors.textPrimary,
-    maxHeight: 100,
-  },
-  sendBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.accent,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  sendBtnDisabled: { opacity: 0.35 },
-  sendIcon: { color: "#fff", fontSize: 18, fontWeight: "700" },
 });
