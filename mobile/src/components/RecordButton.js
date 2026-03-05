@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { MotiView, AnimatePresence } from "moti";
 import { LinearGradient } from "expo-linear-gradient";
-import { colors } from "../theme";
+import { useTheme } from "../contexts/ThemeContext";
 
 function formatTime(seconds) {
   const m = Math.floor(seconds / 60);
@@ -10,35 +10,31 @@ function formatTime(seconds) {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-function PulseRing({ delay, size }) {
+function PulseRing({ delay }) {
   return (
     <MotiView
       from={{ scale: 0.8, opacity: 0.5 }}
       animate={{ scale: 2.2, opacity: 0 }}
       transition={{ type: "timing", duration: 2000, loop: true, delay, repeatReverse: false }}
-      style={[styles.pulseRing, { width: size, height: size, borderRadius: size / 2 }]}
+      style={styles.pulseRing}
     />
   );
 }
 
 function WaveBar({ index }) {
+  const { colors: c } = useTheme();
   return (
     <MotiView
       from={{ height: 6 }}
       animate={{ height: 26 }}
-      transition={{
-        type: "timing",
-        duration: 400,
-        loop: true,
-        repeatReverse: true,
-        delay: index * 100,
-      }}
-      style={styles.waveBar}
+      transition={{ type: "timing", duration: 400, loop: true, repeatReverse: true, delay: index * 100 }}
+      style={[styles.waveBar, { backgroundColor: c.accentLight }]}
     />
   );
 }
 
 export default function RecordButton({ isRecording, duration, onStart, onStop, disabled }) {
+  const { colors: c } = useTheme();
   const [micError, setMicError] = useState(null);
 
   async function handlePress() {
@@ -53,68 +49,76 @@ export default function RecordButton({ isRecording, duration, onStart, onStop, d
 
   return (
     <View style={styles.container}>
-      {/* Pulse rings when recording */}
-      <AnimatePresence>
-        {isRecording && (
-          <View style={styles.ringsContainer}>
-            <PulseRing delay={0} size={BTN_SIZE} />
-            <PulseRing delay={700} size={BTN_SIZE} />
-            <PulseRing delay={1400} size={BTN_SIZE} />
-          </View>
-        )}
-      </AnimatePresence>
+      {/* Button area — everything centered here */}
+      <View style={styles.btnArea}>
+        {/* Pulse rings (recording only) */}
+        <AnimatePresence>
+          {isRecording && (
+            <View style={styles.centered}>
+              <PulseRing delay={0} />
+              <PulseRing delay={700} />
+              <PulseRing delay={1400} />
+            </View>
+          )}
+        </AnimatePresence>
 
-      {/* Outer ring */}
-      <MotiView
-        animate={{
-          scale: isRecording ? 1.05 : 1,
-          borderColor: isRecording ? "rgba(239,68,68,0.25)" : "rgba(124,58,237,0.2)",
-        }}
-        transition={{ type: "spring", damping: 15 }}
-        style={styles.outerRing}
-      />
-
-      {/* Main button */}
-      <MotiView
-        animate={{ scale: isRecording ? 1.05 : 1 }}
-        transition={{ type: "spring", damping: 12, stiffness: 150 }}
-      >
-        <TouchableOpacity
-          onPress={handlePress}
-          disabled={disabled}
-          activeOpacity={0.85}
+        {/* Spinning arc */}
+        <MotiView
+          from={{ rotate: "0deg" }}
+          animate={{ rotate: "360deg" }}
+          transition={{ type: "timing", duration: 4000, loop: true, repeatReverse: false }}
+          style={styles.centered}
         >
-          <LinearGradient
-            colors={isRecording ? ["#EF4444", "#DC2626"] : [colors.accent, "#6D28D9"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.button, { opacity: disabled ? 0.5 : 1 }]}
-          >
-            <AnimatePresence exitBeforeEnter>
-              {isRecording ? (
-                <MotiView
-                  key="stop"
-                  from={{ scale: 0, rotate: "45deg" }}
-                  animate={{ scale: 1, rotate: "0deg" }}
-                  exit={{ scale: 0 }}
-                  transition={{ type: "spring", damping: 12 }}
-                  style={styles.stopIcon}
-                />
-              ) : (
-                <MotiView
-                  key="mic"
-                  from={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0, opacity: 0 }}
-                  transition={{ type: "spring", damping: 12 }}
-                >
-                  <Text style={styles.micEmoji}>🎙️</Text>
-                </MotiView>
-              )}
-            </AnimatePresence>
-          </LinearGradient>
-        </TouchableOpacity>
-      </MotiView>
+          <View
+            style={[
+              styles.arcRing,
+              {
+                borderColor: isRecording ? "rgba(239,68,68,0.2)" : "rgba(124,58,237,0.2)",
+                borderTopColor: isRecording ? "#EF4444" : c.accentLight,
+                borderRightColor: "transparent",
+              },
+            ]}
+          />
+        </MotiView>
+
+        {/* Main button */}
+        <MotiView
+          animate={{ scale: isRecording ? 1.05 : 1 }}
+          transition={{ type: "spring", damping: 12, stiffness: 150 }}
+        >
+          <TouchableOpacity onPress={handlePress} disabled={disabled} activeOpacity={0.85}>
+            <LinearGradient
+              colors={isRecording ? ["#EF4444", "#DC2626"] : [c.accent, "#6D28D9"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[styles.button, { opacity: disabled ? 0.5 : 1 }]}
+            >
+              <AnimatePresence exitBeforeEnter>
+                {isRecording ? (
+                  <MotiView
+                    key="stop"
+                    from={{ scale: 0, rotate: "45deg" }}
+                    animate={{ scale: 1, rotate: "0deg" }}
+                    exit={{ scale: 0 }}
+                    transition={{ type: "spring", damping: 12 }}
+                    style={styles.stopIcon}
+                  />
+                ) : (
+                  <MotiView
+                    key="mic"
+                    from={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0, opacity: 0 }}
+                    transition={{ type: "spring", damping: 12 }}
+                  >
+                    <Text style={styles.micEmoji}>🎙️</Text>
+                  </MotiView>
+                )}
+              </AnimatePresence>
+            </LinearGradient>
+          </TouchableOpacity>
+        </MotiView>
+      </View>
 
       {/* Label + waveform */}
       <View style={styles.labelArea}>
@@ -127,21 +131,14 @@ export default function RecordButton({ isRecording, duration, onStart, onStop, d
               exit={{ opacity: 0, translateY: -10 }}
               style={{ alignItems: "center" }}
             >
-              <Text style={styles.timer}>{formatTime(duration)}</Text>
+              <Text style={[styles.timer, { color: c.textPrimary }]}>{formatTime(duration)}</Text>
               <View style={styles.waveform}>
-                {[0, 1, 2, 3, 4].map((i) => (
-                  <WaveBar key={i} index={i} />
-                ))}
+                {[0, 1, 2, 3, 4].map((i) => <WaveBar key={i} index={i} />)}
               </View>
             </MotiView>
           ) : (
-            <MotiView
-              key="idle"
-              from={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <Text style={styles.hint}>Appuie pour dicter ton projet</Text>
+            <MotiView key="idle" from={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <Text style={[styles.hint, { color: c.textDisabled }]}>Appuie pour dicter ton projet</Text>
             </MotiView>
           )}
         </AnimatePresence>
@@ -149,42 +146,48 @@ export default function RecordButton({ isRecording, duration, onStart, onStop, d
 
       {micError && (
         <MotiView from={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <Text style={styles.errorText}>{micError}</Text>
+          <Text style={[styles.errorText, { color: c.danger }]}>{micError}</Text>
         </MotiView>
       )}
     </View>
   );
 }
 
-const BTN_SIZE = 120;
-const RING_SIZE = 152;
+const BTN = 120;
+const RING = 148;
 
 const styles = StyleSheet.create({
-  container: { alignItems: "center", justifyContent: "center", height: 230 },
-  ringsContainer: {
-    position: "absolute",
-    width: BTN_SIZE,
-    height: BTN_SIZE,
-    top: (230 - BTN_SIZE) / 2 - 22,
+  container: {
+    alignItems: "center",
+  },
+  btnArea: {
+    width: RING,
+    height: RING,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  centered: {
+    ...StyleSheet.absoluteFillObject,
     alignItems: "center",
     justifyContent: "center",
   },
   pulseRing: {
     position: "absolute",
+    width: BTN,
+    height: BTN,
+    borderRadius: BTN / 2,
     backgroundColor: "rgba(124,58,237,0.12)",
   },
-  outerRing: {
-    position: "absolute",
-    width: RING_SIZE,
-    height: RING_SIZE,
-    borderRadius: RING_SIZE / 2,
-    borderWidth: 2,
-    top: (230 - RING_SIZE) / 2 - 22,
+  arcRing: {
+    width: RING,
+    height: RING,
+    borderRadius: RING / 2,
+    borderWidth: 2.5,
   },
   button: {
-    width: BTN_SIZE,
-    height: BTN_SIZE,
-    borderRadius: BTN_SIZE / 2,
+    width: BTN,
+    height: BTN,
+    borderRadius: BTN / 2,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -195,13 +198,19 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   micEmoji: { fontSize: 42 },
-  labelArea: { alignItems: "center", marginTop: 18, minHeight: 50 },
+  labelArea: {
+    alignItems: "center",
+    marginTop: 16,
+    minHeight: 50,
+  },
   timer: {
-    fontSize: 20, fontWeight: "700", color: colors.textPrimary,
-    fontVariant: ["tabular-nums"], marginBottom: 8,
+    fontSize: 20,
+    fontWeight: "700",
+    fontVariant: ["tabular-nums"],
+    marginBottom: 8,
   },
   waveform: { flexDirection: "row", alignItems: "center", gap: 5, height: 30 },
-  waveBar: { width: 3.5, borderRadius: 2, backgroundColor: colors.accentLight },
-  hint: { fontSize: 14, color: colors.textDisabled },
-  errorText: { color: colors.danger, fontSize: 12, marginTop: 8 },
+  waveBar: { width: 3.5, borderRadius: 2 },
+  hint: { fontSize: 14 },
+  errorText: { fontSize: 12, marginTop: 8 },
 });

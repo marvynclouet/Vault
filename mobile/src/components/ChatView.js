@@ -13,9 +13,11 @@ import {
 } from "react-native";
 import { chatWithPM } from "../api";
 import { loadMessages, saveMessage, updateProject } from "../storage";
-import { colors, radius, spacing } from "../theme";
+import { radius, spacing } from "../theme";
+import { useTheme } from "../contexts/ThemeContext";
 
 function MessageBubble({ msg, index }) {
+  const { colors: c } = useTheme();
   const isUser = msg.role === "user";
   const anim = useRef(new Animated.Value(0)).current;
   const slide = useRef(new Animated.Value(10)).current;
@@ -36,17 +38,24 @@ function MessageBubble({ msg, index }) {
       ]}
     >
       {!isUser && (
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>PM</Text>
+        <View style={[styles.avatar, { backgroundColor: c.accentBg }]}>
+          <Text style={[styles.avatarText, { color: c.accentLight }]}>PM</Text>
         </View>
       )}
-      <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAi]}>
-        <Text style={[styles.bubbleText, isUser && styles.bubbleTextUser]}>
+      <View
+        style={[
+          styles.bubble,
+          isUser
+            ? [styles.bubbleUser, { backgroundColor: c.accent }]
+            : [styles.bubbleAi, { backgroundColor: c.bgInput, borderColor: c.border }],
+        ]}
+      >
+        <Text style={[styles.bubbleText, { color: c.textPrimary }, isUser && styles.bubbleTextUser]}>
           {msg.content}
         </Text>
         {msg.hasUpdates && (
-          <View style={styles.updateBadge}>
-            <Text style={styles.updateText}>✅ Projet mis à jour</Text>
+          <View style={[styles.updateBadge, { backgroundColor: c.successBg, borderColor: c.successBorder }]}>
+            <Text style={[styles.updateText, { color: c.success }]}>✅ Projet mis à jour</Text>
           </View>
         )}
       </View>
@@ -55,6 +64,7 @@ function MessageBubble({ msg, index }) {
 }
 
 export default function ChatView({ project, onProjectUpdate }) {
+  const { colors: c } = useTheme();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -145,11 +155,11 @@ export default function ChatView({ project, onProjectUpdate }) {
         onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
       />
 
-      <View style={styles.inputBar}>
+      <View style={[styles.inputBar, { borderTopColor: c.border, backgroundColor: c.bgPrimary }]}>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { backgroundColor: c.bgInput, borderColor: c.borderInput, color: c.textPrimary }]}
           placeholder="Parle à ton PM..."
-          placeholderTextColor={colors.textDisabled}
+          placeholderTextColor={c.textDisabled}
           value={input}
           onChangeText={setInput}
           multiline
@@ -163,7 +173,7 @@ export default function ChatView({ project, onProjectUpdate }) {
             onPressOut={() => Animated.spring(sendScale, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 8 }).start()}
             disabled={!input.trim() || sending}
             activeOpacity={1}
-            style={[styles.sendBtn, (!input.trim() || sending) && styles.sendBtnDisabled]}
+            style={[styles.sendBtn, { backgroundColor: c.accent }, (!input.trim() || sending) && styles.sendBtnDisabled]}
           >
             {sending ? (
               <ActivityIndicator size="small" color="#fff" />
@@ -187,63 +197,51 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: colors.accentBg,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 2,
   },
-  avatarText: { fontSize: 9, fontWeight: "700", color: colors.accentLight },
+  avatarText: { fontSize: 9, fontWeight: "700" },
   bubble: { maxWidth: "80%", padding: 14, borderRadius: radius.xl },
   bubbleUser: {
-    backgroundColor: colors.accent,
     borderBottomRightRadius: 4,
   },
   bubbleAi: {
-    backgroundColor: colors.bgInput,
-    borderColor: colors.border,
     borderWidth: 1,
     borderBottomLeftRadius: 4,
   },
-  bubbleText: { fontSize: 14, lineHeight: 21, color: colors.textPrimary },
+  bubbleText: { fontSize: 14, lineHeight: 21 },
   bubbleTextUser: { color: "#fff" },
   updateBadge: {
     marginTop: 8,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: radius.tab,
-    backgroundColor: colors.successBg,
-    borderColor: colors.successBorder,
     borderWidth: 1,
     alignSelf: "flex-start",
   },
-  updateText: { fontSize: 11, fontWeight: "600", color: colors.success },
+  updateText: { fontSize: 11, fontWeight: "600" },
   inputBar: {
     flexDirection: "row",
     alignItems: "flex-end",
     padding: spacing.md,
     paddingBottom: spacing.xl,
-    borderTopColor: colors.border,
     borderTopWidth: 1,
-    backgroundColor: colors.bgPrimary,
     gap: 8,
   },
   input: {
     flex: 1,
-    backgroundColor: colors.bgInput,
-    borderColor: colors.borderInput,
     borderWidth: 1,
     borderRadius: radius.xxl,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 14,
-    color: colors.textPrimary,
     maxHeight: 100,
   },
   sendBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: colors.accent,
     alignItems: "center",
     justifyContent: "center",
   },

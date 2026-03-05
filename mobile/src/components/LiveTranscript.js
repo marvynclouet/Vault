@@ -1,9 +1,11 @@
 import { useRef, useEffect } from "react";
 import { View, Text, ScrollView, StyleSheet } from "react-native";
 import { MotiView, AnimatePresence } from "moti";
-import { colors, radius, spacing } from "../theme";
+import { radius, spacing } from "../theme";
+import { useTheme } from "../contexts/ThemeContext";
 
 export default function LiveTranscript({ lines, isRecording }) {
+  const { colors: c } = useTheme();
   const scrollRef = useRef(null);
 
   useEffect(() => {
@@ -22,22 +24,22 @@ export default function LiveTranscript({ lines, isRecording }) {
       style={styles.card}
     >
       <View style={styles.header}>
-        <Text style={styles.heading}>TRANSCRIPTION EN DIRECT</Text>
+        <Text style={[styles.heading, { color: c.accentLight }]}>TRANSCRIPTION EN DIRECT</Text>
         <AnimatePresence>
           {isRecording && (
             <MotiView
               from={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
-              style={styles.liveBadge}
+              style={[styles.liveBadge, { backgroundColor: c.dangerBg, borderColor: c.dangerBorder }]}
             >
               <MotiView
                 from={{ opacity: 0.4 }}
                 animate={{ opacity: 1 }}
                 transition={{ type: "timing", duration: 600, loop: true, repeatReverse: true }}
-                style={styles.liveDot}
+                style={[styles.liveDot, { backgroundColor: c.danger }]}
               />
-              <Text style={styles.liveText}>LIVE</Text>
+              <Text style={[styles.liveText, { color: c.danger }]}>LIVE</Text>
             </MotiView>
           )}
         </AnimatePresence>
@@ -50,10 +52,10 @@ export default function LiveTranscript({ lines, isRecording }) {
             animate={{ opacity: 0.6 }}
             transition={{ type: "timing", duration: 800, loop: true, repeatReverse: true }}
           >
-            <Text style={styles.waitingText}>Tes mots apparaîtront ici...</Text>
+            <Text style={[styles.waitingText, { color: c.textDisabled }]}>Tes mots apparaîtront ici...</Text>
           </MotiView>
         ) : (
-          <Text style={styles.transcriptText}>{lines.join(" ")}</Text>
+          <Text style={[styles.transcriptText, { color: c.textPrimary }]}>{lines.join(" ")}</Text>
         )}
       </ScrollView>
     </MotiView>
@@ -70,14 +72,14 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
-  heading: { fontSize: 11, fontWeight: "600", color: colors.accentLight, letterSpacing: 0.9 },
+  heading: { fontSize: 11, fontWeight: "600", letterSpacing: 0.9 },
   liveBadge: {
     flexDirection: "row", alignItems: "center", gap: 5,
-    backgroundColor: colors.dangerBg, paddingHorizontal: 8, paddingVertical: 3,
-    borderRadius: 8, borderWidth: 1, borderColor: colors.dangerBorder,
+    paddingHorizontal: 8, paddingVertical: 3,
+    borderRadius: 8, borderWidth: 1,
   },
-  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.danger },
-  liveText: { fontSize: 10, fontWeight: "700", color: colors.danger },
-  waitingText: { color: colors.textDisabled, fontSize: 14, fontStyle: "italic" },
-  transcriptText: { color: colors.textPrimary, fontSize: 15, lineHeight: 24 },
+  liveDot: { width: 6, height: 6, borderRadius: 3 },
+  liveText: { fontSize: 10, fontWeight: "700" },
+  waitingText: { fontSize: 14, fontStyle: "italic" },
+  transcriptText: { fontSize: 15, lineHeight: 24 },
 });

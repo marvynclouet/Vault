@@ -13,7 +13,8 @@ import { getProject, updateProject } from "../storage";
 import { pushToTrello } from "../api";
 import TaskCard from "../components/TaskCard";
 import ChatView from "../components/ChatView";
-import { colors, radius, spacing, type, cardStyle } from "../theme";
+import { radius, spacing, type, cardStyle } from "../theme";
+import { useTheme } from "../contexts/ThemeContext";
 
 const TABS = [
   { key: "overview", label: "Résumé" },
@@ -21,19 +22,20 @@ const TABS = [
   { key: "chat", label: "Chat PM" },
 ];
 
-const VERDICT = {
-  go: { label: "FONCE", icon: "🟢", color: colors.success, bg: colors.successBg, border: colors.successBorder },
-  pivot: { label: "À AJUSTER", icon: "🟡", color: colors.warning, bg: colors.warningBg, border: colors.warningBorder },
-  drop: { label: "À REPENSER", icon: "🔴", color: colors.danger, bg: colors.dangerBg, border: colors.dangerBorder },
-};
-
 export default function ProjectDetailScreen({ route }) {
+  const { colors: c } = useTheme();
   const { projectId } = route.params;
   const [project, setProject] = useState(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [pushing, setPushing] = useState(false);
   const [transcriptOpen, setTranscriptOpen] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  const VERDICT = {
+    go: { label: "FONCE", icon: "🟢", color: c.success, bg: c.successBg, border: c.successBorder },
+    pivot: { label: "À AJUSTER", icon: "🟡", color: c.warning, bg: c.warningBg, border: c.warningBorder },
+    drop: { label: "À REPENSER", icon: "🔴", color: c.danger, bg: c.dangerBg, border: c.dangerBorder },
+  };
 
   useEffect(() => {
     getProject(projectId).then((p) => {
@@ -67,8 +69,8 @@ export default function ProjectDetailScreen({ route }) {
 
   if (!project) {
     return (
-      <View style={styles.loading}>
-        <ActivityIndicator color={colors.accent} />
+      <View style={[styles.loading, { backgroundColor: c.bgPrimary }]}>
+        <ActivityIndicator color={c.accent} />
       </View>
     );
   }
@@ -77,7 +79,7 @@ export default function ProjectDetailScreen({ route }) {
   const v = VERDICT[review?.verdict] || VERDICT.go;
 
   return (
-    <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
+    <Animated.View style={[styles.container, { opacity: fadeAnim, backgroundColor: c.bgPrimary }]}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.projectName} numberOfLines={1}>{project.project_name}</Text>
@@ -95,9 +97,9 @@ export default function ProjectDetailScreen({ route }) {
               key={tab.key}
               onPress={() => setActiveTab(tab.key)}
               activeOpacity={0.7}
-              style={[styles.tab, activeTab === tab.key && styles.tabActive]}
+              style={[styles.tab, activeTab === tab.key && { backgroundColor: c.accentBg }]}
             >
-              <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>
+              <Text style={[styles.tabText, { color: c.textMuted }, activeTab === tab.key && { color: c.accentLight }]}>
                 {tab.label}
               </Text>
             </TouchableOpacity>
@@ -112,10 +114,10 @@ export default function ProjectDetailScreen({ route }) {
 
           {review && (
             <View style={[styles.reviewCard, { backgroundColor: v.bg, borderColor: v.border }]}>
-              <Text style={styles.oneLiner}>{review.one_liner}</Text>
+              <Text style={[styles.oneLiner, { color: c.textPrimary }]}>{review.one_liner}</Text>
 
               <View style={styles.confidenceRow}>
-                <Text style={styles.confidenceLabel}>Confiance</Text>
+                <Text style={[styles.confidenceLabel, { color: c.textMuted }]}>Confiance</Text>
                 <View style={styles.confidenceTrack}>
                   <View style={[styles.confidenceFill, { width: `${(review.confidence || 0) * 10}%`, backgroundColor: v.color }]} />
                 </View>
@@ -124,18 +126,18 @@ export default function ProjectDetailScreen({ route }) {
 
               <View style={styles.reviewCols}>
                 <View style={styles.reviewCol}>
-                  <Text style={[styles.colTitle, { color: colors.success }]}>✅ Forces</Text>
+                  <Text style={[styles.colTitle, { color: c.success }]}>✅ Forces</Text>
                   {review.strengths?.map((s, i) => (
                     <View key={i} style={styles.bulletCard}>
-                      <Text style={styles.bulletText}>{s}</Text>
+                      <Text style={[styles.bulletText, { color: c.textSecondary }]}>{s}</Text>
                     </View>
                   ))}
                 </View>
                 <View style={styles.reviewCol}>
-                  <Text style={[styles.colTitle, { color: colors.danger }]}>⚠️ Risques</Text>
+                  <Text style={[styles.colTitle, { color: c.danger }]}>⚠️ Risques</Text>
                   {review.risks?.map((r, i) => (
                     <View key={i} style={styles.bulletCard}>
-                      <Text style={styles.bulletText}>{r}</Text>
+                      <Text style={[styles.bulletText, { color: c.textSecondary }]}>{r}</Text>
                     </View>
                   ))}
                 </View>
@@ -143,10 +145,10 @@ export default function ProjectDetailScreen({ route }) {
 
               {review.suggestions?.length > 0 && (
                 <View style={styles.suggestionsSection}>
-                  <Text style={[styles.colTitle, { color: colors.accentLight }]}>💡 Recommandations</Text>
+                  <Text style={[styles.colTitle, { color: c.accentLight }]}>💡 Recommandations</Text>
                   {review.suggestions.map((s, i) => (
                     <View key={i} style={styles.bulletCard}>
-                      <Text style={styles.bulletText}>{s}</Text>
+                      <Text style={[styles.bulletText, { color: c.textSecondary }]}>{s}</Text>
                     </View>
                   ))}
                 </View>
@@ -160,14 +162,14 @@ export default function ProjectDetailScreen({ route }) {
             activeOpacity={0.7}
             style={styles.transcriptToggle}
           >
-            <Text style={styles.transcriptToggleText}>
+            <Text style={[styles.transcriptToggleText, { color: c.textSecondary }]}>
               📝 {transcriptOpen ? "Masquer" : "Voir"} la dictée originale
             </Text>
-            <Text style={styles.transcriptChevron}>{transcriptOpen ? "▲" : "▼"}</Text>
+            <Text style={[styles.transcriptChevron, { color: c.textMuted }]}>{transcriptOpen ? "▲" : "▼"}</Text>
           </TouchableOpacity>
           {transcriptOpen && (
             <View style={styles.transcriptBox}>
-              <Text style={styles.transcriptText}>"{project.transcript}"</Text>
+              <Text style={[styles.transcriptText, { color: c.textSecondary }]}>"{project.transcript}"</Text>
             </View>
           )}
 
@@ -193,20 +195,20 @@ export default function ProjectDetailScreen({ route }) {
               onPress={handlePushTrello}
               disabled={pushing || project.synced_to === "Trello"}
               activeOpacity={0.7}
-              style={[styles.exportBtn, project.synced_to === "Trello" && styles.exportBtnDone]}
+              style={[styles.exportBtn, project.synced_to === "Trello" && { borderColor: c.successBorder }]}
             >
               {pushing ? (
-                <ActivityIndicator size="small" color={colors.accent} />
+                <ActivityIndicator size="small" color={c.accent} />
               ) : (
                 <>
                   <Text style={styles.exportIcon}>📋</Text>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.exportTitle}>Trello</Text>
-                    <Text style={styles.exportDesc}>
+                    <Text style={[styles.exportTitle, { color: c.textPrimary }]}>Trello</Text>
+                    <Text style={[styles.exportDesc, { color: c.textMuted }]}>
                       {project.synced_to === "Trello" ? "Déjà synchronisé" : "Créer les cartes"}
                     </Text>
                   </View>
-                  {project.synced_to === "Trello" && <Text style={styles.checkmark}>✓</Text>}
+                  {project.synced_to === "Trello" && <Text style={[styles.checkmark, { color: c.success }]}>✓</Text>}
                 </>
               )}
             </TouchableOpacity>
@@ -214,8 +216,8 @@ export default function ProjectDetailScreen({ route }) {
             <View style={[styles.exportBtn, { opacity: 0.4 }]}>
               <Text style={styles.exportIcon}>📝</Text>
               <View style={{ flex: 1 }}>
-                <Text style={styles.exportTitle}>Jira / Notion / Asana</Text>
-                <Text style={styles.exportDesc}>Bientôt</Text>
+                <Text style={[styles.exportTitle, { color: c.textPrimary }]}>Jira / Notion / Asana</Text>
+                <Text style={[styles.exportDesc, { color: c.textMuted }]}>Bientôt</Text>
               </View>
             </View>
           </View>
@@ -233,8 +235,8 @@ export default function ProjectDetailScreen({ route }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bgPrimary },
-  loading: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.bgPrimary },
+  container: { flex: 1 },
+  loading: { flex: 1, justifyContent: "center", alignItems: "center" },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -270,9 +272,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: radius.tab,
   },
-  tabActive: { backgroundColor: colors.accentBg },
-  tabText: { fontSize: 13, fontWeight: "600", color: colors.textMuted },
-  tabTextActive: { color: colors.accentLight },
+  tabText: { fontSize: 13, fontWeight: "600" },
   tabContent: { flex: 1 },
   tabInner: { padding: spacing.xl },
   summary: { ...type.sub, lineHeight: 23, marginBottom: spacing.xl },
@@ -282,9 +282,9 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     marginBottom: spacing.xl,
   },
-  oneLiner: { fontSize: 15, fontWeight: "600", color: colors.textPrimary, lineHeight: 22, marginBottom: 16 },
+  oneLiner: { fontSize: 15, fontWeight: "600", lineHeight: 22, marginBottom: 16 },
   confidenceRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 18 },
-  confidenceLabel: { fontSize: 12, color: colors.textMuted },
+  confidenceLabel: { fontSize: 12 },
   confidenceTrack: { flex: 1, height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.06)", overflow: "hidden" },
   confidenceFill: { height: "100%", borderRadius: 3 },
   confidenceValue: { fontSize: 13, fontWeight: "700" },
@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
     padding: 8,
     marginBottom: 4,
   },
-  bulletText: { fontSize: 12, color: colors.textSecondary, lineHeight: 17 },
+  bulletText: { fontSize: 12, lineHeight: 17 },
   suggestionsSection: { marginTop: 16, paddingTop: 16, borderTopColor: "rgba(255,255,255,0.04)", borderTopWidth: 1 },
   transcriptToggle: {
     ...cardStyle,
@@ -306,15 +306,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 4,
   },
-  transcriptToggleText: { fontSize: 13, fontWeight: "600", color: colors.textSecondary },
-  transcriptChevron: { fontSize: 10, color: colors.textMuted },
+  transcriptToggleText: { fontSize: 13, fontWeight: "600" },
+  transcriptChevron: { fontSize: 10 },
   transcriptBox: {
     backgroundColor: "rgba(255,255,255,0.02)",
     borderRadius: radius.md,
     padding: spacing.lg,
     marginBottom: spacing.md,
   },
-  transcriptText: { fontSize: 13, color: colors.textSecondary, lineHeight: 20, fontStyle: "italic" },
+  transcriptText: { fontSize: 13, lineHeight: 20, fontStyle: "italic" },
   sectionLabel: { ...type.label, marginBottom: 12 },
   exportBtn: {
     ...cardStyle,
@@ -323,9 +323,8 @@ const styles = StyleSheet.create({
     gap: 14,
     marginBottom: spacing.sm,
   },
-  exportBtnDone: { borderColor: colors.successBorder },
   exportIcon: { fontSize: 22 },
-  exportTitle: { fontSize: 14, fontWeight: "600", color: colors.textPrimary },
-  exportDesc: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
-  checkmark: { fontSize: 18, color: colors.success, fontWeight: "700" },
+  exportTitle: { fontSize: 14, fontWeight: "600" },
+  exportDesc: { fontSize: 11, marginTop: 2 },
+  checkmark: { fontSize: 18, fontWeight: "700" },
 });

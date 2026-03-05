@@ -1,12 +1,7 @@
 import { View, Text, StyleSheet } from "react-native";
 import { MotiView } from "moti";
-import { colors, radius, spacing, cardStyle } from "../theme";
-
-const PRIORITY = {
-  Haute: { bg: colors.dangerBg, text: colors.danger, border: colors.dangerBorder },
-  Moyenne: { bg: colors.warningBg, text: colors.warning, border: colors.warningBorder },
-  Basse: { bg: colors.successBg, text: colors.success, border: colors.successBorder },
-};
+import { radius, spacing, cardStyle } from "../theme";
+import { useTheme } from "../contexts/ThemeContext";
 
 const ROLE_ICONS = {
   Designer: "🎨", Developer: "💻", Dev: "💻", Marketing: "📣",
@@ -14,6 +9,14 @@ const ROLE_ICONS = {
 };
 
 export default function TaskCard({ task, index }) {
+  const { colors: c } = useTheme();
+
+  const PRIORITY = {
+    Haute: { bg: c.dangerBg, text: c.danger, border: c.dangerBorder },
+    Moyenne: { bg: c.warningBg, text: c.warning, border: c.warningBorder },
+    Basse: { bg: c.successBg, text: c.success, border: c.successBorder },
+  };
+
   const p = PRIORITY[task.priority] || PRIORITY.Basse;
   const icon = ROLE_ICONS[task.assignee_role] || "👤";
 
@@ -25,16 +28,16 @@ export default function TaskCard({ task, index }) {
       style={styles.card}
     >
       <View style={styles.header}>
-        <Text style={styles.title} numberOfLines={2}>{task.title}</Text>
+        <Text style={[styles.title, { color: c.textPrimary }]} numberOfLines={2}>{task.title}</Text>
         <View style={[styles.priorityBadge, { backgroundColor: p.bg, borderColor: p.border }]}>
           <Text style={[styles.priorityText, { color: p.text }]}>{task.priority}</Text>
         </View>
       </View>
 
-      <Text style={styles.description}>{task.description}</Text>
+      <Text style={[styles.description, { color: c.textSecondary }]}>{task.description}</Text>
 
-      <View style={styles.roleBadge}>
-        <Text style={styles.roleText}>{icon} {task.assignee_role}</Text>
+      <View style={[styles.roleBadge, { backgroundColor: c.accentBg }]}>
+        <Text style={[styles.roleText, { color: c.accentLight }]}>{icon} {task.assignee_role}</Text>
       </View>
     </MotiView>
   );
@@ -43,10 +46,10 @@ export default function TaskCard({ task, index }) {
 const styles = StyleSheet.create({
   card: { ...cardStyle, marginBottom: spacing.md },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8, gap: 8 },
-  title: { fontSize: 14, fontWeight: "700", color: colors.textPrimary, flex: 1 },
+  title: { fontSize: 14, fontWeight: "700", flex: 1 },
   priorityBadge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: radius.badge, borderWidth: 1 },
   priorityText: { fontSize: 11, fontWeight: "600" },
-  description: { fontSize: 13, color: colors.textSecondary, lineHeight: 19, marginBottom: 10 },
-  roleBadge: { alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: colors.accentBg },
-  roleText: { fontSize: 11, color: colors.accentLight, fontWeight: "500" },
+  description: { fontSize: 13, lineHeight: 19, marginBottom: 10 },
+  roleBadge: { alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
+  roleText: { fontSize: 11, fontWeight: "500" },
 });

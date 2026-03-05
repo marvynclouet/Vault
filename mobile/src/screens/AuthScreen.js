@@ -12,10 +12,12 @@ import {
 import { MotiView } from "moti";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "../contexts/AuthContext";
-import { colors, radius, spacing } from "../theme";
+import { useTheme } from "../contexts/ThemeContext";
+import { radius, spacing } from "../theme";
 
 export default function AuthScreen() {
   const { signIn, signUp } = useAuth();
+  const { colors: c } = useTheme();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -44,7 +46,7 @@ export default function AuthScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: c.bgPrimary }]}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <MotiView
@@ -61,7 +63,7 @@ export default function AuthScreen() {
             transition={{ type: "spring", damping: 12, delay: 200 }}
           >
             <LinearGradient
-              colors={[colors.accent, "#6D28D9"]}
+              colors={[c.accent, "#6D28D9"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.logo}
@@ -74,9 +76,9 @@ export default function AuthScreen() {
             animate={{ opacity: 1, translateY: 0 }}
             transition={{ type: "timing", duration: 500, delay: 400 }}
           >
-            <Text style={styles.appName}>Vault-PM</Text>
-            <Text style={styles.tagline}>Ton Chef de Projet IA</Text>
-            <Text style={styles.slogan}>Parle. L'IA structure.</Text>
+            <Text style={[styles.appName, { color: c.textPrimary }]}>Vault-PM</Text>
+            <Text style={[styles.tagline, { color: c.textSecondary }]}>Ton Chef de Projet IA</Text>
+            <Text style={[styles.slogan, { color: c.accentLight }]}>Parle. L'IA structure.</Text>
           </MotiView>
         </View>
 
@@ -87,23 +89,23 @@ export default function AuthScreen() {
           transition={{ type: "spring", damping: 18, delay: 500 }}
           style={styles.form}
         >
-          <TextInput style={styles.input} placeholder="Email" placeholderTextColor={colors.textDisabled} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} />
-          <TextInput style={styles.input} placeholder="Mot de passe" placeholderTextColor={colors.textDisabled} value={password} onChangeText={setPassword} secureTextEntry />
+          <TextInput style={[styles.input, { backgroundColor: c.bgInput, borderColor: c.borderInput, color: c.textPrimary }]} placeholder="Email" placeholderTextColor={c.textDisabled} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} />
+          <TextInput style={[styles.input, { backgroundColor: c.bgInput, borderColor: c.borderInput, color: c.textPrimary }]} placeholder="Mot de passe" placeholderTextColor={c.textDisabled} value={password} onChangeText={setPassword} secureTextEntry />
 
           {error && (
-            <MotiView from={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} style={styles.errorBox}>
-              <Text style={styles.errorText}>{error}</Text>
+            <MotiView from={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} style={[styles.errorBox, { backgroundColor: c.dangerSoft, borderColor: c.dangerBorderSoft }]}>
+              <Text style={[styles.errorText, { color: c.danger }]}>{error}</Text>
             </MotiView>
           )}
           {success && (
-            <MotiView from={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} style={styles.successBox}>
-              <Text style={styles.successText}>{success}</Text>
+            <MotiView from={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} style={[styles.successBox, { backgroundColor: c.successBg, borderColor: c.successBorder }]}>
+              <Text style={[styles.successText, { color: c.success }]}>{success}</Text>
             </MotiView>
           )}
 
           <TouchableOpacity onPress={handleSubmit} disabled={loading} activeOpacity={0.85}>
             <LinearGradient
-              colors={[colors.accent, "#6D28D9"]}
+              colors={[c.accent, "#6D28D9"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.submitBtn}
@@ -119,7 +121,7 @@ export default function AuthScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => { setIsSignUp(!isSignUp); setError(null); setSuccess(null); }} style={styles.switchBtn}>
-            <Text style={styles.switchText}>
+            <Text style={[styles.switchText, { color: c.accentLight }]}>
               {isSignUp ? "Déjà un compte ? Se connecter" : "Pas de compte ? Créer un compte"}
             </Text>
           </TouchableOpacity>
@@ -140,41 +142,38 @@ export default function AuthScreen() {
               transition={{ type: "spring", damping: 15, delay: 800 + i * 100 }}
               style={styles.chip}
             >
-              <Text style={styles.chipText}>{chip}</Text>
+              <Text style={[styles.chipText, { color: c.textSecondary }]}>{chip}</Text>
             </MotiView>
           ))}
         </MotiView>
 
-        <Text style={styles.footer}>🔒 Zero-Retention · Vos données restent les vôtres</Text>
+        <Text style={[styles.footer, { color: c.textDisabled }]}>🔒 Zero-Retention · Vos données restent les vôtres</Text>
       </MotiView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bgPrimary },
+  container: { flex: 1 },
   content: { flex: 1, justifyContent: "center", padding: spacing.xxl },
   logoSection: { alignItems: "center", marginBottom: 48 },
   logo: { width: 68, height: 68, borderRadius: 20, alignItems: "center", justifyContent: "center", marginBottom: 16 },
   logoText: { color: "#fff", fontSize: 32, fontWeight: "700" },
-  appName: { fontSize: 28, fontWeight: "700", color: colors.textPrimary, textAlign: "center" },
-  tagline: { fontSize: 14, color: colors.textSecondary, marginTop: 6, textAlign: "center" },
-  slogan: { fontSize: 14, fontStyle: "italic", color: colors.accentLight, marginTop: 4, textAlign: "center" },
+  appName: { fontSize: 28, fontWeight: "700", textAlign: "center" },
+  tagline: { fontSize: 14, marginTop: 6, textAlign: "center" },
+  slogan: { fontSize: 14, fontStyle: "italic", marginTop: 4, textAlign: "center" },
   form: { gap: 12 },
-  input: {
-    backgroundColor: colors.bgInput, borderColor: colors.borderInput, borderWidth: 1,
-    borderRadius: radius.input, paddingHorizontal: 18, paddingVertical: 16, fontSize: 15, color: colors.textPrimary,
-  },
-  errorBox: { backgroundColor: colors.dangerSoft, borderColor: colors.dangerBorderSoft, borderWidth: 1, borderRadius: radius.sm, padding: 12 },
-  errorText: { color: colors.danger, fontSize: 13 },
-  successBox: { backgroundColor: colors.successBg, borderColor: colors.successBorder, borderWidth: 1, borderRadius: radius.sm, padding: 12 },
-  successText: { color: colors.success, fontSize: 13 },
+  input: { borderWidth: 1, borderRadius: radius.input, paddingHorizontal: 18, paddingVertical: 16, fontSize: 15 },
+  errorBox: { borderWidth: 1, borderRadius: radius.sm, padding: 12 },
+  errorText: { fontSize: 13 },
+  successBox: { borderWidth: 1, borderRadius: radius.sm, padding: 12 },
+  successText: { fontSize: 13 },
   submitBtn: { borderRadius: radius.input, paddingVertical: 16, alignItems: "center", marginTop: 4 },
   submitText: { color: "#fff", fontSize: 16, fontWeight: "600" },
   switchBtn: { alignItems: "center", paddingVertical: 14 },
-  switchText: { color: colors.accentLight, fontSize: 14, fontWeight: "500" },
+  switchText: { fontSize: 14, fontWeight: "500" },
   chipRow: { flexDirection: "row", justifyContent: "center", gap: 8, marginTop: 28 },
   chip: { backgroundColor: "rgba(255,255,255,0.04)", borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
-  chipText: { fontSize: 11, color: colors.textSecondary },
-  footer: { textAlign: "center", fontSize: 11, color: colors.textDisabled, marginTop: 20 },
+  chipText: { fontSize: 11 },
+  footer: { textAlign: "center", fontSize: 11, marginTop: 20 },
 });
