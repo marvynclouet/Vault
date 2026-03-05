@@ -1,180 +1,154 @@
-import { useRef, useEffect } from "react";
+import { ScrollView, StyleSheet } from "react-native";
 import {
-  View,
+  YStack,
+  XStack,
   Text,
-  ScrollView,
-  TouchableOpacity,
-  Animated,
-  StyleSheet,
-} from "react-native";
+  Card,
+  Button,
+  Separator,
+} from "tamagui";
 import { useAuth } from "../contexts/AuthContext";
-import { colors, radius, spacing, type, cardStyle, fadeInUp } from "../theme";
+import { colors, type as t } from "../theme";
 
-function IntegrationRow({ icon, name, desc, badge, badgeColor, badgeBg, dimmed, last }) {
+function IntegrationItem({ icon, name, desc, badge, badgeColor, badgeBg, dimmed }) {
   return (
-    <View style={[styles.integrationRow, last && { borderBottomWidth: 0 }, dimmed && { opacity: 0.5 }]}>
-      <Text style={styles.integrationIcon}>{icon}</Text>
-      <View style={{ flex: 1 }}>
-        <Text style={[styles.integrationName, dimmed && { color: colors.textMuted }]}>{name}</Text>
-        {desc && <Text style={styles.integrationDesc}>{desc}</Text>}
-      </View>
-      <View style={[styles.statusBadge, { backgroundColor: badgeBg }]}>
-        <Text style={[styles.statusText, { color: badgeColor }]}>{badge}</Text>
-      </View>
-    </View>
+    <XStack
+      alignItems="center"
+      gap="$3"
+      padding="$3.5"
+      opacity={dimmed ? 0.5 : 1}
+    >
+      <Text fontSize={22}>{icon}</Text>
+      <YStack flex={1}>
+        <Text color={dimmed ? colors.textMuted : colors.textPrimary} fontSize={15} fontWeight="600">
+          {name}
+        </Text>
+        {desc && (
+          <Text color={colors.textMuted} fontSize={12} marginTop={2}>
+            {desc}
+          </Text>
+        )}
+      </YStack>
+      <Card
+        backgroundColor={badgeBg}
+        paddingHorizontal="$2"
+        paddingVertical="$1"
+        borderRadius={8}
+      >
+        <Text color={badgeColor} fontSize={9} fontWeight="700" letterSpacing={0.5}>
+          {badge}
+        </Text>
+      </Card>
+    </XStack>
+  );
+}
+
+function AboutRow({ label, value, last }) {
+  return (
+    <>
+      <XStack justifyContent="space-between" alignItems="center" padding="$3.5">
+        <Text color={colors.textSecondary} fontSize={14}>{label}</Text>
+        <Text color={colors.textPrimary} fontSize={14} fontWeight="600">{value}</Text>
+      </XStack>
+      {!last && <Separator borderColor={colors.border} />}
+    </>
   );
 }
 
 export default function SettingsScreen() {
   const { user, signOut } = useAuth();
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(8)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      fadeInUp(fadeAnim),
-      Animated.timing(slideAnim, { toValue: 0, duration: 350, useNativeDriver: true }),
-    ]).start();
-  }, []);
-
   const initial = (user?.email || "?")[0].toUpperCase();
 
   return (
-    <Animated.ScrollView
-      style={[styles.container, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}
-      contentContainerStyle={styles.content}
-    >
-      <Text style={styles.title}>Réglages</Text>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <Text color={colors.textPrimary} fontSize={28} fontWeight="700" letterSpacing={-0.5} marginBottom="$5">
+        Réglages
+      </Text>
 
       {/* Account */}
-      <Text style={styles.sectionLabel}>COMPTE</Text>
-      <View style={styles.card}>
-        <View style={styles.accountRow}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initial}</Text>
-          </View>
-          <Text style={styles.email}>{user?.email || "—"}</Text>
-        </View>
-      </View>
+      <Text {...labelStyle}>COMPTE</Text>
+      <Card backgroundColor={colors.bgCard} borderColor={colors.border} borderWidth={1} borderRadius={16} marginBottom="$3">
+        <XStack alignItems="center" gap="$3" padding="$3.5">
+          <YStack
+            width={48}
+            height={48}
+            borderRadius={24}
+            backgroundColor={colors.accent}
+            alignItems="center"
+            justifyContent="center"
+          >
+            <Text color="#fff" fontSize={20} fontWeight="700">{initial}</Text>
+          </YStack>
+          <Text color={colors.textPrimary} fontSize={15} fontWeight="500">
+            {user?.email || "—"}
+          </Text>
+        </XStack>
+      </Card>
 
       {/* Integrations */}
-      <Text style={styles.sectionLabel}>INTÉGRATIONS</Text>
-      <View style={styles.card}>
-        <IntegrationRow icon="📋" name="Trello" desc="Clés API dans le backend (.env)" badge="BACKEND" badgeColor={colors.accentLight} badgeBg={colors.accentBg} />
-        <IntegrationRow icon="💬" name="Webhook (n8n / Make)" desc="WEBHOOK_URL dans le backend (.env)" badge="BACKEND" badgeColor={colors.accentLight} badgeBg={colors.accentBg} last />
-      </View>
+      <Text {...labelStyle}>INTÉGRATIONS</Text>
+      <Card backgroundColor={colors.bgCard} borderColor={colors.border} borderWidth={1} borderRadius={16} marginBottom="$3">
+        <IntegrationItem icon="📋" name="Trello" desc="Clés API dans le backend (.env)" badge="BACKEND" badgeColor={colors.accentLight} badgeBg={colors.accentBg} />
+        <Separator borderColor={colors.border} />
+        <IntegrationItem icon="💬" name="Webhook (n8n / Make)" desc="WEBHOOK_URL dans le backend (.env)" badge="BACKEND" badgeColor={colors.accentLight} badgeBg={colors.accentBg} />
+      </Card>
 
-      <View style={styles.card}>
-        <IntegrationRow icon="📝" name="Jira" dimmed badge="BIENTÔT" badgeColor={colors.textMuted} badgeBg="rgba(255,255,255,0.05)" />
-        <IntegrationRow icon="📓" name="Notion" dimmed badge="BIENTÔT" badgeColor={colors.textMuted} badgeBg="rgba(255,255,255,0.05)" />
-        <IntegrationRow icon="📊" name="Asana" dimmed last badge="BIENTÔT" badgeColor={colors.textMuted} badgeBg="rgba(255,255,255,0.05)" />
-      </View>
+      <Card backgroundColor={colors.bgCard} borderColor={colors.border} borderWidth={1} borderRadius={16} marginBottom="$3">
+        <IntegrationItem icon="📝" name="Jira" dimmed badge="BIENTÔT" badgeColor={colors.textMuted} badgeBg="rgba(255,255,255,0.05)" />
+        <Separator borderColor={colors.border} />
+        <IntegrationItem icon="📓" name="Notion" dimmed badge="BIENTÔT" badgeColor={colors.textMuted} badgeBg="rgba(255,255,255,0.05)" />
+        <Separator borderColor={colors.border} />
+        <IntegrationItem icon="📊" name="Asana" dimmed badge="BIENTÔT" badgeColor={colors.textMuted} badgeBg="rgba(255,255,255,0.05)" />
+      </Card>
 
       {/* About */}
-      <Text style={styles.sectionLabel}>À PROPOS</Text>
-      <View style={styles.card}>
-        <View style={styles.aboutRow}>
-          <Text style={styles.aboutLabel}>Version</Text>
-          <Text style={styles.aboutValue}>0.3.0</Text>
-        </View>
-        <View style={styles.aboutRow}>
-          <Text style={styles.aboutLabel}>Backend</Text>
-          <Text style={styles.aboutValue}>FastAPI + Supabase</Text>
-        </View>
-        <View style={[styles.aboutRow, { borderBottomWidth: 0 }]}>
-          <Text style={styles.aboutLabel}>Sécurité</Text>
-          <Text style={styles.aboutValue}>Zero-Retention IA</Text>
-        </View>
-      </View>
+      <Text {...labelStyle}>À PROPOS</Text>
+      <Card backgroundColor={colors.bgCard} borderColor={colors.border} borderWidth={1} borderRadius={16} marginBottom="$3">
+        <AboutRow label="Version" value="0.3.0" />
+        <AboutRow label="Backend" value="FastAPI + Supabase" />
+        <AboutRow label="Sécurité" value="Zero-Retention IA" last />
+      </Card>
 
       {/* Logout */}
-      <TouchableOpacity onPress={signOut} activeOpacity={0.7} style={styles.logoutBtn}>
-        <Text style={styles.logoutText}>Se déconnecter</Text>
-      </TouchableOpacity>
+      <Button
+        size="$5"
+        chromeless
+        borderColor="rgba(255,255,255,0.08)"
+        borderWidth={1}
+        borderRadius={14}
+        color={colors.textSecondary}
+        fontWeight="600"
+        fontSize={14}
+        marginTop="$4"
+        pressStyle={{ scale: 0.97, opacity: 0.8 }}
+        onPress={signOut}
+      >
+        Se déconnecter
+      </Button>
 
-      <Text style={styles.footer}>
+      <Text color={colors.textDisabled} fontSize={11} textAlign="center" marginTop="$5">
         🔒 Zero-Retention · Vos données ne sont jamais stockées sur nos serveurs IA
       </Text>
 
-      <Text style={styles.madeWith}>Vault-PM v0.3.0 — Made with 🤖</Text>
+      <Text color={colors.textDisabled} fontSize={11} textAlign="center" marginTop="$3">
+        Vault-PM v0.3.0 — Made with 🤖
+      </Text>
 
-      <View style={{ height: 120 }} />
-    </Animated.ScrollView>
+      <YStack height={120} />
+    </ScrollView>
   );
 }
 
+const labelStyle = {
+  color: colors.textMuted,
+  fontSize: 11,
+  fontWeight: "600",
+  letterSpacing: 0.9,
+  marginBottom: 10,
+  marginTop: 16,
+};
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bgPrimary },
-  content: { padding: spacing.xl, paddingTop: spacing.xxxl + 12 },
-  title: { ...type.h1, marginBottom: spacing.xxl },
-  sectionLabel: { ...type.label, marginBottom: spacing.md, marginTop: spacing.lg },
-  card: {
-    backgroundColor: colors.bgCard,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radius.card,
-    marginBottom: spacing.md,
-    overflow: "hidden",
-  },
-  accountRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    padding: spacing.lg,
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.accent,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarText: { color: "#fff", fontSize: 20, fontWeight: "700" },
-  email: { fontSize: 15, color: colors.textPrimary, fontWeight: "500" },
-  integrationRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    padding: spacing.lg,
-    borderBottomColor: colors.border,
-    borderBottomWidth: 1,
-  },
-  integrationIcon: { fontSize: 22 },
-  integrationName: { fontSize: 15, fontWeight: "600", color: colors.textPrimary },
-  integrationDesc: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
-  statusBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.badge },
-  statusText: { fontSize: 9, fontWeight: "700", letterSpacing: 0.5 },
-  aboutRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: spacing.lg,
-    borderBottomColor: colors.border,
-    borderBottomWidth: 1,
-  },
-  aboutLabel: { ...type.body, color: colors.textSecondary },
-  aboutValue: { ...type.body, color: colors.textPrimary, fontWeight: "600" },
-  logoutBtn: {
-    borderColor: colors.borderInput,
-    borderWidth: 1,
-    borderRadius: radius.input,
-    padding: spacing.lg,
-    alignItems: "center",
-    marginTop: spacing.xl,
-  },
-  logoutText: { color: colors.textSecondary, fontWeight: "600", fontSize: 14 },
-  madeWith: {
-    textAlign: "center",
-    fontSize: 11,
-    color: colors.textDisabled,
-    marginTop: 16,
-  },
-  footer: {
-    textAlign: "center",
-    fontSize: 11,
-    color: colors.textDisabled,
-    marginTop: 24,
-    lineHeight: 16,
-  },
+  content: { padding: 20, paddingTop: 56 },
 });
