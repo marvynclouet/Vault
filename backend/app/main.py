@@ -16,6 +16,7 @@ from app.models import (
 from app.prompts import load_system_prompt_pm
 from app.services.chat import chat_with_pm
 from app.services.structuring import analyze_transcript, structure_transcript
+from app.services.weekly_review import generate_weekly_review
 from app.services.transcription import transcribe_audio, transcribe_audio_validated
 from app.routers.analysis import router as analysis_router
 from app.services.trello import create_trello_cards, get_boards, get_lists
@@ -136,6 +137,12 @@ async def api_update_project(req: UpdateProjectRequest) -> dict:
     return {"transcript": req.transcript, "analysis": merged}
 
 
+
+
+@app.post("/api/weekly-review")
+async def api_weekly_review(payload: dict) -> dict:
+    projects = payload.get("projects", [])
+    return await generate_weekly_review(projects)
 
 
 class ChatRequest(BaseModel):

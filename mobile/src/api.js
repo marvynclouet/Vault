@@ -134,3 +134,16 @@ export async function fetchTrelloLists(boardId) {
   if (!res.ok) throw new Error("Impossible de charger les listes Trello");
   return res.json();
 }
+
+export async function generateWeeklyReview(projects) {
+  const res = await fetch(`${API_BASE}/api/weekly-review`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ projects }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Erreur serveur (${res.status})`);
+  }
+  return res.json();
+}

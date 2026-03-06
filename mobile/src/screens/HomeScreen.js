@@ -16,8 +16,8 @@ import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { loadProjects, loadProfile, loadQuickNotes, addQuickNote, updateQuickNote, updateProject, addProject, deleteProject } from "../storage";
-import { analyzeText } from "../api";
+import { loadProjects, loadProfile, loadQuickNotes, addQuickNote, updateQuickNote, updateProject, addProject, deleteProject, touchStreak, getWeeklyGoals, saveWeeklyGoals } from "../storage";
+import { analyzeText, generateWeeklyReview } from "../api";
 import { useTheme } from "../contexts/ThemeContext";
 import { radius, spacing } from "../theme";
 
@@ -116,18 +116,39 @@ export default function HomeScreen({ navigation }) {
   const [noteInput, setNoteInput] = useState("");
   const [savingNote, setSavingNote] = useState(false);
   const [analyzingNote, setAnalyzingNote] = useState(null);
+  const [streak, setStreak] = useState(0);
+  const [weeklyGoals, setWeeklyGoals] = useState([]);
+  const [goalsModal, setGoalsModal] = useState(false);
+  const [goalsInputs, setGoalsInputs] = useState(["", "", ""]);
+  const [reviewModal, setReviewModal] = useState(false);
+  const [reviewData, setReviewData] = useState(null);
+  const [reviewLoading, setReviewLoading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [p, prof, notes] = await Promise.all([
+      const [p, prof, notes, streakCount, goals] = await Promise.all([
         loadProjects(),
         loadProfile(),
         loadQuickNotes(),
+        touchStreak(),
+        getWeeklyGoals(),
       ]);
       setProjects(p);
       setProfile(prof);
       setQuickNotes(notes);
+      setStreak(streakCount);
+      if (goals.length > 0) {
+        setWeeklyGoals(goals);
+      } else {
+        const defaults = [
+          { text: "Avancer sur mon projet principal", done: false },
+          { text: "Contacter 2 prospects", done: false },
+          { text: "Préparer la semaine prochaine", done: false },
+        ];
+        setWeeklyGoals(defaults);
+        await saveWeeklyGoals(defaults);
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -147,6 +168,23 @@ export default function HomeScreen({ navigation }) {
   const scoreNorm = lastProjectScore != null ? Math.min(10, Math.round(Number(lastProjectScore) / 4) || 0) : null;
   const activityFeed = useMemo(() => buildActivityFeed(projects), [projects]);
   const prénom = profile?.display_name?.split(" ")[0] || profile?.username || "toi";
+
+  const dormantProjects = useMemo(() => {
+    const now = Date.now();
+    return projects.filter((p) => {
+      const tasks = p.tasks || [];
+      const pending = tasks.filter((t) => (t.status || "todo") !== "done");
+      if (!pending.length) return false;
+      let lastActivity = new Date(p.created_at).getTime();
+      for (const t of tasks) {
+        if (t.completed_at) {
+          const d = new Date(t.completed_at).getTime();
+          if (d > lastActivity) lastActivity = d;
+        }
+      }
+      return (now - lastActivity) / 86400000 >= 5;
+    });
+  }, [projects]);
 
   const bannerMessage = useMemo(() => {
     if (allTasksDone) return "Bravo, journée clear ! 🎉";
@@ -219,6 +257,43 @@ export default function HomeScreen({ navigation }) {
     setQuickNotes((prev) => prev.filter((n) => n.id !== id));
   }, []);
 
+  const handleToggleGoal = useCallback(async (index) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const updated = weeklyGoals.map((g, i) => (i === index ? { ...g, done: !g.done } : g));
+    setWeeklyGoals(updated);
+    await saveWeeklyGoals(updated);
+  }, [weeklyGoals]);
+
+  const handleSaveGoals = useCallback(async () => {
+    const updated = goalsInputs.map((text, i) => ({
+      text: text.trim() || weeklyGoals[i]?.text || `Objectif ${i + 1}`,
+      done: weeklyGoals[i]?.done || false,
+    }));
+    setWeeklyGoals(updated);
+    await saveWeeklyGoals(updated);
+    setGoalsModal(false);
+  }, [goalsInputs, weeklyGoals]);
+
+  const handleOpenGoalsModal = useCallback(() => {
+    setGoalsInputs(weeklyGoals.map((g) => g.text));
+    setGoalsModal(true);
+  }, [weeklyGoals]);
+
+  const handleWeeklyReview = useCallback(async () => {
+    setReviewModal(true);
+    if (reviewData) return;
+    setReviewLoading(true);
+    try {
+      const data = await generateWeeklyReview(projects);
+      setReviewData(data);
+    } catch (e) {
+      Alert.alert("Erreur", e.message || "Impossible de générer la revue.");
+      setReviewModal(false);
+    } finally {
+      setReviewLoading(false);
+    }
+  }, [projects, reviewData]);
+
   const handleDeleteProject = useCallback(async (id) => {
     const msg = "Supprimer ce projet ?\n\nTu es sûr ? C'est irréversible.";
     if (Platform.OS === "web") {
@@ -268,13 +343,20 @@ export default function HomeScreen({ navigation }) {
           <Text style={[styles.greeting, { color: c.textPrimary }]}>Bonjour, {prénom} 👋</Text>
           <Text style={[styles.date, { color: c.textMuted }]}>{formatDate()}</Text>
         </View>
-        <TouchableOpacity onPress={() => navigation.navigate("Réglages", { screen: "Profile" })} activeOpacity={0.7}>
-          <View style={[styles.avatar, { backgroundColor: c.accentBg }]}>
-            <Text style={[styles.avatarText, { color: c.accentLight }]}>
-              {(profile?.avatar_url || profile?.display_name?.[0] || profile?.username?.[0] || "?")}
-            </Text>
-          </View>
-        </TouchableOpacity>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          {streak > 0 && (
+            <View style={styles.streakBadge}>
+              <Text style={styles.streakText}>🔥 {streak}j</Text>
+            </View>
+          )}
+          <TouchableOpacity onPress={() => navigation.navigate("Réglages", { screen: "Profile" })} activeOpacity={0.7}>
+            <View style={[styles.avatar, { backgroundColor: c.accentBg }]}>
+              <Text style={[styles.avatarText, { color: c.accentLight }]}>
+                {(profile?.avatar_url || profile?.display_name?.[0] || profile?.username?.[0] || "?")}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* 2. Bannière motivation */}
@@ -287,6 +369,67 @@ export default function HomeScreen({ navigation }) {
         >
           <Text style={[styles.bannerText, { color: c.textPrimary }]}>{bannerMessage}</Text>
         </LinearGradient>
+      </View>
+
+      {/* 2b. Alertes stagnation */}
+      {dormantProjects.length > 0 && (
+        <View style={[styles.section, { marginTop: SECTION_GAP }]}>
+          <Text style={[styles.sectionLabel, { color: c.textMuted, marginBottom: 8 }]}>ATTENTION</Text>
+          {dormantProjects.map((p) => (
+            <TouchableOpacity
+              key={p.id}
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate("Projets", { screen: "ProjectDetail", params: { projectId: p.id } })}
+              style={[styles.alertRow, { backgroundColor: "rgba(239,68,68,0.08)", borderColor: "rgba(239,68,68,0.25)" }]}
+            >
+              <Text style={{ fontSize: 16 }}>⚠️</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.alertTitle, { color: c.textPrimary }]} numberOfLines={1}>
+                  {p.project_name}
+                </Text>
+                <Text style={[styles.alertDesc, { color: c.textMuted }]}>Aucune activité depuis 5+ jours</Text>
+              </View>
+              <Text style={{ color: "rgba(239,68,68,0.8)", fontSize: 13, fontWeight: "600" }}>Reprendre →</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
+      {/* 2c. Objectifs de la semaine */}
+      <View style={[styles.section, { marginTop: SECTION_GAP }]}>
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: c.textPrimary }]}>Cette semaine</Text>
+          <TouchableOpacity onPress={handleOpenGoalsModal} activeOpacity={0.7}>
+            <Text style={[styles.seeAll, { color: c.accentLight }]}>Modifier ›</Text>
+          </TouchableOpacity>
+        </View>
+        {weeklyGoals.map((g, i) => (
+          <TouchableOpacity
+            key={i}
+            activeOpacity={0.8}
+            onPress={() => handleToggleGoal(i)}
+            style={[styles.goalRow, { borderColor: c.border }]}
+          >
+            <View style={[styles.goalCheck, g.done && { backgroundColor: c.success, borderColor: c.success }]}>
+              {g.done && <Text style={styles.checkmark}>✓</Text>}
+            </View>
+            <Text
+              style={[styles.goalText, { color: c.textPrimary }, g.done && styles.taskDone]}
+              numberOfLines={1}
+            >
+              {g.text}
+            </Text>
+          </TouchableOpacity>
+        ))}
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={handleWeeklyReview}
+          style={[styles.reviewBtn, { borderColor: "rgba(124,58,237,0.4)", backgroundColor: "rgba(124,58,237,0.1)" }]}
+        >
+          <Text style={{ fontSize: 16 }}>📊</Text>
+          <Text style={[styles.reviewBtnText, { color: c.accentLight }]}>Revue IA de la semaine</Text>
+          <Text style={{ color: c.accentLight, fontSize: 16 }}>›</Text>
+        </TouchableOpacity>
       </View>
 
       {/* 3. Section Aujourd'hui — affichée seulement si tâches */}
@@ -468,6 +611,100 @@ export default function HomeScreen({ navigation }) {
           ))
         )}
       </View>
+
+      {/* Modal revue hebdomadaire */}
+      <Modal visible={reviewModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: c.bgSecondary, borderColor: c.border, maxHeight: "85%" }]}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {reviewLoading ? (
+                <View style={{ alignItems: "center", paddingVertical: 40 }}>
+                  <ActivityIndicator color={c.accent} size="large" />
+                  <Text style={[{ color: c.textMuted, marginTop: 16, fontSize: 14 }]}>Analyse de ta semaine...</Text>
+                </View>
+              ) : reviewData ? (
+                <>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+                    <Text style={[styles.modalTitle, { color: c.textPrimary, flex: 1 }]}>{reviewData.headline}</Text>
+                    <View style={[styles.reviewScore, { backgroundColor: c.accentBg }]}>
+                      <Text style={[{ color: c.accentLight, fontSize: 20, fontWeight: "800" }]}>{reviewData.score}</Text>
+                      <Text style={[{ color: c.textMuted, fontSize: 10 }]}>/10</Text>
+                    </View>
+                  </View>
+
+                  {reviewData.highlights?.length > 0 && (
+                    <View style={styles.reviewSection}>
+                      <Text style={[styles.reviewSectionTitle, { color: c.success }]}>✅ Réalisations</Text>
+                      {reviewData.highlights.map((h, i) => (
+                        <Text key={i} style={[styles.reviewItem, { color: c.textSecondary }]}>• {h}</Text>
+                      ))}
+                    </View>
+                  )}
+
+                  {reviewData.stuck?.length > 0 && (
+                    <View style={styles.reviewSection}>
+                      <Text style={[styles.reviewSectionTitle, { color: c.warning }]}>⚠️ Points bloquants</Text>
+                      {reviewData.stuck.map((s, i) => (
+                        <Text key={i} style={[styles.reviewItem, { color: c.textSecondary }]}>• {s}</Text>
+                      ))}
+                    </View>
+                  )}
+
+                  {reviewData.next_week?.length > 0 && (
+                    <View style={styles.reviewSection}>
+                      <Text style={[styles.reviewSectionTitle, { color: c.accentLight }]}>🎯 Semaine prochaine</Text>
+                      {reviewData.next_week.map((n, i) => (
+                        <Text key={i} style={[styles.reviewItem, { color: c.textSecondary }]}>• {n}</Text>
+                      ))}
+                    </View>
+                  )}
+
+                  {reviewData.motivation && (
+                    <View style={[styles.reviewMotivation, { backgroundColor: "rgba(124,58,237,0.12)", borderColor: "rgba(124,58,237,0.3)" }]}>
+                      <Text style={[{ color: c.textPrimary, fontSize: 14, fontStyle: "italic", lineHeight: 20 }]}>
+                        "{reviewData.motivation}"
+                      </Text>
+                    </View>
+                  )}
+                </>
+              ) : null}
+            </ScrollView>
+            <TouchableOpacity
+              onPress={() => setReviewModal(false)}
+              style={[styles.modalBtn, { backgroundColor: c.accent, marginTop: 16, alignItems: "center" }]}
+            >
+              <Text style={{ color: "#fff", fontWeight: "600" }}>Fermer</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal modifier objectifs */}
+      <Modal visible={goalsModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: c.bgSecondary, borderColor: c.border }]}>
+            <Text style={[styles.modalTitle, { color: c.textPrimary }]}>Objectifs de la semaine</Text>
+            {[0, 1, 2].map((i) => (
+              <TextInput
+                key={i}
+                style={[styles.modalInput, { backgroundColor: c.bgInput, borderColor: c.borderInput, color: c.textPrimary, minHeight: 44, marginBottom: 10 }]}
+                placeholder={`Objectif ${i + 1}`}
+                placeholderTextColor={c.textDisabled}
+                value={goalsInputs[i] || ""}
+                onChangeText={(v) => setGoalsInputs((prev) => prev.map((x, j) => (j === i ? v : x)))}
+              />
+            ))}
+            <View style={styles.modalActions}>
+              <TouchableOpacity onPress={() => setGoalsModal(false)} style={[styles.modalBtn, { borderColor: c.border }]}>
+                <Text style={{ color: c.textSecondary }}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleSaveGoals} style={[styles.modalBtn, { backgroundColor: c.accent }]}>
+                <Text style={{ color: "#fff", fontWeight: "600" }}>Enregistrer</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Modal note rapide */}
       <Modal visible={noteModal} transparent animationType="fade">
@@ -655,5 +892,76 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 12,
+  },
+
+  streakBadge: {
+    backgroundColor: "rgba(245,158,11,0.15)",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+  },
+  streakText: { fontSize: 13, fontWeight: "700", color: "#F59E0B" },
+
+  alertRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  alertTitle: { fontSize: 14, fontWeight: "600" },
+  alertDesc: { fontSize: 12, marginTop: 2 },
+
+  goalRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 11,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 8,
+    gap: 12,
+  },
+  goalCheck: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.3)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  goalText: { fontSize: 14, flex: 1 },
+
+  reviewBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 4,
+  },
+  reviewBtnText: { flex: 1, fontSize: 14, fontWeight: "600" },
+
+  reviewScore: {
+    alignItems: "center",
+    justifyContent: "center",
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    marginLeft: 10,
+  },
+  reviewSection: { marginBottom: 16 },
+  reviewSectionTitle: { fontSize: 14, fontWeight: "700", marginBottom: 6 },
+  reviewItem: { fontSize: 14, lineHeight: 20, marginBottom: 4 },
+  reviewMotivation: {
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 4,
+    marginBottom: 8,
   },
 });

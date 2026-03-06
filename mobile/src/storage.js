@@ -1,4 +1,47 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "./lib/supabase";
+
+// ── Streak ──
+
+const STREAK_COUNT_KEY = "vault_streak_count";
+const STREAK_DATE_KEY = "vault_streak_date";
+
+export async function getStreak() {
+  const [count, date] = await Promise.all([
+    AsyncStorage.getItem(STREAK_COUNT_KEY),
+    AsyncStorage.getItem(STREAK_DATE_KEY),
+  ]);
+  return { count: parseInt(count || "0", 10), lastDate: date };
+}
+
+export async function touchStreak() {
+  const today = new Date().toISOString().slice(0, 10);
+  const { count, lastDate } = await getStreak();
+  if (lastDate === today) return count;
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const newCount = lastDate === yesterday ? count + 1 : 1;
+  await AsyncStorage.setItem(STREAK_COUNT_KEY, String(newCount));
+  await AsyncStorage.setItem(STREAK_DATE_KEY, today);
+  return newCount;
+}
+
+// ── Weekly goals ──
+
+function getWeekKey() {
+  const d = new Date();
+  const jan1 = new Date(d.getFullYear(), 0, 1);
+  const week = Math.ceil(((d - jan1) / 86400000 + jan1.getDay() + 1) / 7);
+  return `vault_goals_${d.getFullYear()}_w${week}`;
+}
+
+export async function getWeeklyGoals() {
+  const raw = await AsyncStorage.getItem(getWeekKey());
+  return raw ? JSON.parse(raw) : [];
+}
+
+export async function saveWeeklyGoals(goals) {
+  await AsyncStorage.setItem(getWeekKey(), JSON.stringify(goals));
+}
 
 // ── Projects ──
 
