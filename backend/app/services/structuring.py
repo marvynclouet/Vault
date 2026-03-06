@@ -1,10 +1,19 @@
 import json
+import sys
+from pathlib import Path
 
 from openai import AsyncOpenAI
 
 from app.config import settings
 from app.models import AnalyzeResponse, ProjectPayload
 from app.prompts import get_system_prompt_pm
+
+# Ajouter backend au path pour importer les prompts
+_backend = Path(__file__).resolve().parent.parent.parent
+if str(_backend) not in sys.path:
+    sys.path.insert(0, str(_backend))
+
+from prompts.few_shots import FEW_SHOTS_ANALYZE
 
 def _get_client():
     if settings.ai_provider == "groq":
@@ -89,7 +98,7 @@ async def structure_transcript(transcript: str) -> ProjectPayload:
 
 
 async def analyze_transcript(transcript: str) -> AnalyzeResponse:
-    """Analyse une transcription avec le PM Expert (system prompt + base de connaissances)."""
+    """Analyse une transcription avec le PM Expert (system prompt + few shots + base de connaissances)."""
     client = _get_client()
     system_prompt = get_system_prompt_pm() + ANALYZE_JSON_FORMAT
     user_content = (
@@ -101,6 +110,7 @@ async def analyze_transcript(transcript: str) -> AnalyzeResponse:
         model=settings.llm_model,
         messages=[
             {"role": "system", "content": system_prompt},
+            *FEW_SHOTS_ANALYZE,
             {"role": "user", "content": user_content},
         ],
         response_format={"type": "json_object"},

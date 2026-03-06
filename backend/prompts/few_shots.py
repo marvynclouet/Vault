@@ -1,3 +1,103 @@
+# Few shots pour le format AnalyzeResponse (utilisé par /api/analyze)
+FEW_SHOTS_ANALYZE = [
+    {
+        "role": "user",
+        "content": "Voici la transcription vocale d'une idée de projet :\n\nJe veux faire une app pour aider les freelances à gérer leurs finances, leurs factures et leur trésorerie. Les freelances galèrent tous avec ça.\n\nAnalyse ce projet selon ta méthodologie. Réponds UNIQUEMENT en JSON.",
+    },
+    {
+        "role": "assistant",
+        "content": """{
+  "project_name": "FinanceFreelance",
+  "summary": "App mobile de gestion financière pour freelances : facturation automatique, suivi trésorerie, préparation déclaration fiscale. Zéro compta complexe.",
+  "vision": "Quand je termine une mission client, je veux facturer et suivre ma trésorerie en 2 minutes, pour ne plus avoir de mauvaises surprises fiscales en fin d'année.",
+  "mvp_summary": "MVP en 3 semaines : création de factures PDF, suivi entrées/sorties, dashboard trésorerie. Sans intégration bancaire ni compta avancée.",
+  "review": {
+    "verdict": "pivot",
+    "confidence": 6,
+    "strengths": [
+      "Problème réel et douloureux : 3M+ freelances en France sous-équipés",
+      "Marché validé par Indy, Freebe, Shine — la demande existe et les gens paient",
+      "Monétisation SaaS claire avec LTV élevée (abonnement mensuel)"
+    ],
+    "risks": [
+      "Concurrence forte et mature : Indy, Freebe, Shine ont des années d'avance",
+      "Factures électroniques obligatoires en 2026 — contrainte légale lourde à gérer",
+      "Coût d'acquisition élevé sur un positionnement générique 'tous freelances'"
+    ],
+    "suggestions": [
+      "Se spécialiser sur une niche (ex: développeurs, consultants, créatifs) pour réduire la concurrence",
+      "Trouver un unfair advantage réel — ex: intégration API Urssaf pour déclaration auto, introuvable ailleurs",
+      "Valider la demande avec une landing page + liste d'attente avant de coder"
+    ],
+    "one_liner": "Le comptable automatique pour freelances qui détestent la compta.",
+    "score_clarity": 8,
+    "score_market": 7,
+    "score_feasibility": 8,
+    "score_competitive": 3,
+    "score_global": 26
+  },
+  "tasks": [
+    {
+      "title": "Création de factures PDF",
+      "description": "Formulaire client + prestation + montant HT/TTC, génération PDF automatique, envoi par email",
+      "assignee_role": "Développeur Full Stack",
+      "priority": "Haute",
+      "action_target": "Trello",
+      "status": "todo",
+      "due_date": null,
+      "completed_at": null,
+      "order": 0
+    },
+    {
+      "title": "Dashboard trésorerie",
+      "description": "Affichage entrées/sorties du mois, solde courant, alerte si trésorerie sous seuil",
+      "assignee_role": "Développeur Front",
+      "priority": "Haute",
+      "action_target": "Trello",
+      "status": "todo",
+      "due_date": null,
+      "completed_at": null,
+      "order": 1
+    },
+    {
+      "title": "Authentification et profil freelance",
+      "description": "Signup/login email, profil avec statut juridique, numéro SIRET, taux TVA",
+      "assignee_role": "Développeur Back",
+      "priority": "Haute",
+      "action_target": "Trello",
+      "status": "todo",
+      "due_date": null,
+      "completed_at": null,
+      "order": 2
+    },
+    {
+      "title": "Suivi des missions et clients",
+      "description": "CRM minimaliste : liste clients, historique factures par client, statut payé/en attente",
+      "assignee_role": "Développeur Full Stack",
+      "priority": "Moyenne",
+      "action_target": "Trello",
+      "status": "todo",
+      "due_date": null,
+      "completed_at": null,
+      "order": 3
+    },
+    {
+      "title": "Export comptable CSV",
+      "description": "Export du journal des recettes pour le comptable ou la déclaration URSSAF",
+      "assignee_role": "Développeur Back",
+      "priority": "Basse",
+      "action_target": "Trello",
+      "status": "todo",
+      "due_date": null,
+      "completed_at": null,
+      "order": 4
+    }
+  ]
+}""",
+    },
+]
+
+# Few shots pour le format llm_router (utilisé par /api/v1/analyze)
 FEW_SHOTS = [
     {
         "role": "user",
