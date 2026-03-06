@@ -73,7 +73,7 @@ export default function KanbanView({ project, onProjectUpdate }) {
       style={styles.container}
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={[styles.columns, { paddingBottom: insets.bottom + TAB_BAR_HEIGHT }]}
+      contentContainerStyle={[styles.columns, { paddingBottom: insets.bottom + TAB_BAR_HEIGHT + 100 }]}
     >
       {COLUMNS.map((col) => (
         <View key={col.key} style={[styles.column, getGlassStyle(c)]}>
@@ -104,9 +104,10 @@ export default function KanbanView({ project, onProjectUpdate }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  columns: { flexDirection: "row", gap: 12, padding: spacing.lg },
+  columns: { flexDirection: "row", gap: 12, padding: spacing.lg, paddingRight: spacing.xl + 60 },
   column: {
     width: 200,
+    minHeight: 120,
     borderRadius: radius.lg,
     padding: spacing.md,
     maxHeight: 400,
@@ -127,13 +128,13 @@ const styles = StyleSheet.create({
   moveBtn: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1 },
   moveBtnText: { fontSize: 10, fontWeight: "500" },
   emptyCol: {
-    padding: 20,
+    padding: 16,
     borderRadius: 12,
     borderWidth: 1,
     borderStyle: "dashed",
     alignItems: "center",
     justifyContent: "center",
-    minHeight: 60,
+    minHeight: 120,
   },
-  emptyColText: { fontSize: 12, opacity: 0.7 },
+  emptyColText: { fontSize: 12, opacity: 0.6, fontStyle: "italic" },
 });

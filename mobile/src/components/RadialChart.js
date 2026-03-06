@@ -49,8 +49,8 @@ export default function RadialChart({ score = 0, size = 80 }) {
       </Svg>
       <View style={[StyleSheet.absoluteFillObject, { pointerEvents: "none" }]}>
         <View style={styles.labelWrap}>
-          <Text style={[styles.score, { color: c.textPrimary }]}>{Math.round(normalized)}</Text>
-          <Text style={[styles.max, { color: c.textMuted }]}>/10</Text>
+          <Text style={[styles.score, { color: c.textPrimary, fontSize: Math.max(10, size * 0.32) }]}>{Math.round(normalized)}</Text>
+          <Text style={[styles.max, { color: c.textMuted, fontSize: Math.max(8, size * 0.14) }]}>/10</Text>
         </View>
       </View>
     </View>
@@ -61,6 +61,6 @@ const styles = StyleSheet.create({
   wrap: { alignItems: "center", justifyContent: "center" },
   svg: { position: "absolute" },
   labelWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
-  score: { fontSize: 28, fontWeight: "700" },
-  max: { fontSize: 12, marginTop: -2 },
+  score: { fontWeight: "700" },
+  max: { marginTop: -2 },
 });

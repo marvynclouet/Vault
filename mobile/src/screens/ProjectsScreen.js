@@ -70,21 +70,27 @@ function ProjectCard({ item, index, onPress, onDelete }) {
   const roles = getRoles(item.tasks);
 
   useEffect(() => {
+    const native = Platform.OS !== "web";
     Animated.parallel([
-      Animated.timing(anim, { toValue: 1, duration: 400, delay: index * 70, useNativeDriver: true }),
-      Animated.timing(slide, { toValue: 0, duration: 400, delay: index * 70, useNativeDriver: true }),
+      Animated.timing(anim, { toValue: 1, duration: 400, delay: index * 70, useNativeDriver: native }),
+      Animated.timing(slide, { toValue: 0, duration: 400, delay: index * 70, useNativeDriver: native }),
     ]).start();
   }, []);
 
   const handleLongPress = () => {
-    Alert.alert(
-      "Supprimer ce projet ?",
-      "Tu es sûr ? C'est irréversible. Le projet, ses tâches et les messages du chat seront supprimés.",
-      [
-        { text: "Annuler", style: "cancel" },
-        { text: "Supprimer", style: "destructive", onPress: () => onDelete(item.id) },
-      ]
-    );
+    const msg = "Supprimer ce projet ?\n\nTu es sûr ? C'est irréversible. Le projet, ses tâches et les messages du chat seront supprimés.";
+    if (Platform.OS === "web") {
+      if (window.confirm(msg)) onDelete(item.id);
+    } else {
+      Alert.alert(
+        "Supprimer ce projet ?",
+        "Tu es sûr ? C'est irréversible. Le projet, ses tâches et les messages du chat seront supprimés.",
+        [
+          { text: "Annuler", style: "cancel" },
+          { text: "Supprimer", style: "destructive", onPress: () => onDelete(item.id) },
+        ]
+      );
+    }
   };
 
   return (
@@ -93,15 +99,20 @@ function ProjectCard({ item, index, onPress, onDelete }) {
         activeOpacity={1}
         onPress={onPress}
         onLongPress={handleLongPress}
-        onPressIn={() => Animated.spring(scale, { toValue: 0.98, useNativeDriver: true, speed: 50 }).start()}
-        onPressOut={() => Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 8 }).start()}
+        onPressIn={() => Animated.spring(scale, { toValue: 0.98, useNativeDriver: Platform.OS !== "web", speed: 50 }).start()}
+        onPressOut={() => Animated.spring(scale, { toValue: 1, useNativeDriver: Platform.OS !== "web", speed: 20, bounciness: 8 }).start()}
         style={[styles.card, { borderColor: c.border }]}
       >
         <View style={[styles.verdictBar, { backgroundColor: v.band }]} />
         <View style={styles.cardBody}>
           <View style={styles.cardTitleRow}>
             <Text style={[styles.cardTitle, { color: c.textPrimary }]} numberOfLines={1}>{item.project_name}</Text>
-            <Text style={[styles.cardChevron, { color: c.textDisabled }]}>›</Text>
+            <View style={styles.cardTitleRight}>
+              <Text style={[styles.cardScore, { color: c.textMuted }]}>
+                {Math.min(10, Math.round((item.review?.confidence ?? item.review?.score_global ?? 0) / 4) || 0)}/10
+              </Text>
+              <Text style={[styles.cardChevron, { color: c.textDisabled }]}>›</Text>
+            </View>
           </View>
           <View style={styles.cardMetaRow}>
             <View style={[styles.verdictBadge, { backgroundColor: v.bg }]}>
@@ -139,7 +150,7 @@ export default function ProjectsScreen({ navigation }) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.timing(fadeAnim, { toValue: 1, duration: 350, useNativeDriver: true }).start();
+    Animated.timing(fadeAnim, { toValue: 1, duration: 350, useNativeDriver: Platform.OS !== "web" }).start();
   }, []);
 
   useFocusEffect(
@@ -233,6 +244,8 @@ const styles = StyleSheet.create({
   cardBody: { padding: spacing.lg, paddingLeft: spacing.lg + 8 },
   cardTitleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 },
   cardTitle: { fontSize: 16, fontWeight: "700", flex: 1, marginRight: 8 },
+  cardTitleRight: { flexDirection: "row", alignItems: "center", gap: 6 },
+  cardScore: { fontSize: 11, fontWeight: "600" },
   cardChevron: { fontSize: 22 },
   cardMetaRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
   verdictBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.badge },

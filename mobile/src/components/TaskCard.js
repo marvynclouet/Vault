@@ -9,10 +9,23 @@ const ROLE_ICONS = {
   "Chef de Projet": "📋", PM: "📋",
 };
 
+const DAYS_SHORT = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
+const MONTHS_SHORT = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep", "Oct", "Nov", "Déc"];
+
 function formatDueDate(iso) {
   if (!iso) return null;
   const d = new Date(iso);
-  return d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+  return `${DAYS_SHORT[d.getDay()]} ${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`;
+}
+
+function getDaysOverdue(iso) {
+  if (!iso) return 0;
+  const due = new Date(iso);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  due.setHours(0, 0, 0, 0);
+  const diff = Math.floor((today - due) / (1000 * 60 * 60 * 24));
+  return diff > 0 ? diff : 0;
 }
 
 export default function TaskCard({ task, index, onToggle, onPressDate }) {
@@ -29,6 +42,7 @@ export default function TaskCard({ task, index, onToggle, onPressDate }) {
   const p = PRIORITY[task.priority] || PRIORITY.Basse;
   const icon = ROLE_ICONS[task.assignee_role] || "👤";
   const dueStr = formatDueDate(task.due_date);
+  const daysOverdue = !isDone && task.due_date ? getDaysOverdue(task.due_date) : 0;
 
   return (
     <MotiView
@@ -72,9 +86,19 @@ export default function TaskCard({ task, index, onToggle, onPressDate }) {
             {dueStr && (
               <TouchableOpacity
                 onPress={() => onPressDate?.(task)}
-                style={[styles.dateBadge, { borderColor: c.border }]}
+                style={[styles.dateBadge, { borderColor: daysOverdue > 0 ? c.dangerBorder : c.border }]}
               >
-                <Text style={[styles.dateText, { color: c.textMuted }]}>📅 {dueStr}</Text>
+                <Text style={[styles.dateText, daysOverdue > 0 && { color: c.danger }]}>
+                  {daysOverdue > 0 ? `⚠️ En retard de ${daysOverdue}j` : `📅 ${dueStr}`}
+                </Text>
+              </TouchableOpacity>
+            )}
+            {!dueStr && (
+              <TouchableOpacity
+                onPress={() => onPressDate?.(task)}
+                style={[styles.dateBadge, { borderColor: c.border, borderStyle: "dashed" }]}
+              >
+                <Text style={[styles.dateText, { color: c.textMuted }]}>📅 Définir échéance</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -86,7 +110,7 @@ export default function TaskCard({ task, index, onToggle, onPressDate }) {
 
 const styles = StyleSheet.create({
   card: { ...cardStyle, marginBottom: spacing.md, padding: 16 },
-  cardDone: { opacity: 0.75 },
+  cardDone: { opacity: 0.5 },
   row: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
   checkbox: {
     width: 24,

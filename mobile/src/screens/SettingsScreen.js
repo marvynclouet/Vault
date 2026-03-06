@@ -9,8 +9,11 @@ import {
   Animated,
   StyleSheet,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../contexts/AuthContext";
 import { loadProfile } from "../storage";
+
+const CHAT_AUTO_SEND_KEY = "chat_auto_send_dispatch";
 import { radius, spacing, type, cardStyle, fadeInUp } from "../theme";
 import { useTheme } from "../contexts/ThemeContext";
 
@@ -34,6 +37,7 @@ export default function SettingsScreen({ navigation }) {
   const { colors: c, isDark, toggleTheme } = useTheme();
   const { user, signOut } = useAuth();
   const [profile, setProfile] = useState(null);
+  const [chatAutoSend, setChatAutoSend] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(8)).current;
 
@@ -47,8 +51,14 @@ export default function SettingsScreen({ navigation }) {
   useFocusEffect(
     useCallback(() => {
       loadProfile().then(setProfile).catch(() => setProfile(null));
+      AsyncStorage.getItem(CHAT_AUTO_SEND_KEY).then((v) => setChatAutoSend(v === "true"));
     }, [])
   );
+
+  const handleChatAutoSend = useCallback((value) => {
+    setChatAutoSend(value);
+    AsyncStorage.setItem(CHAT_AUTO_SEND_KEY, value ? "true" : "false");
+  }, []);
 
   const avatarDisplay = profile?.avatar_url || (user?.email || "?")[0].toUpperCase();
 
@@ -91,6 +101,24 @@ export default function SettingsScreen({ navigation }) {
           onValueChange={toggleTheme}
           trackColor={{ false: "rgba(255,255,255,0.1)", true: c.accentBg }}
           thumbColor={isDark ? "#555" : c.accent}
+        />
+      </View>
+
+      {/* Chat vocal */}
+      <Text style={[styles.sectionLabel, { color: c.textMuted }]}>CHAT PM</Text>
+      <View style={[styles.themeRow, { backgroundColor: c.bgCard, borderColor: c.border }]}>
+        <Text style={{ fontSize: 20 }}>🎙️</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.themeLabel, { color: c.textPrimary }]}>Envoi auto après dictée</Text>
+          <Text style={{ fontSize: 12, color: c.textMuted, marginTop: 2 }}>
+            Envoyer le message dès la transcription
+          </Text>
+        </View>
+        <Switch
+          value={chatAutoSend}
+          onValueChange={handleChatAutoSend}
+          trackColor={{ false: "rgba(255,255,255,0.1)", true: c.accentBg }}
+          thumbColor={chatAutoSend ? c.accent : "#555"}
         />
       </View>
 

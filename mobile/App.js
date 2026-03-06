@@ -1,4 +1,4 @@
-import { NavigationContainer } from "@react-navigation/native";
+import { NavigationContainer, createNavigationContainerRef } from "@react-navigation/native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { CurvedBottomBarExpo } from "react-native-curved-bottom-bar";
@@ -14,7 +14,7 @@ import {
   Platform,
 } from "react-native";
 import { MotiView, AnimatePresence } from "moti";
-import { LinearGradient } from "expo-linear-gradient";
+import { Mic } from "lucide-react-native";
 
 import { AuthProvider, useAuth } from "./src/contexts/AuthContext";
 import { ThemeProvider, useTheme } from "./src/contexts/ThemeContext";
@@ -29,6 +29,10 @@ import SettingsScreen from "./src/screens/SettingsScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
 import ExploreScreen from "./src/screens/ExploreScreen";
 import OnboardingScreen from "./src/screens/OnboardingScreen";
+import { QuickDictateProvider, useQuickDictate } from "./src/contexts/QuickDictateContext";
+import QuickDictateSheet from "./src/components/QuickDictateSheet";
+
+const navigationRef = createNavigationContainerRef();
 
 const ProjectStack = createNativeStackNavigator();
 const SettingsStack = createNativeStackNavigator();
@@ -122,43 +126,46 @@ function TabIcon({ routeName, focused, profile }) {
 
 function MainApp() {
   const { colors: c, isDark } = useTheme();
+  const { open: openQuickDictate } = useQuickDictate();
   const [profile, setProfile] = useState(null);
 
   useEffect(() => {
     loadProfile().then(setProfile).catch(() => {});
   }, []);
 
+  const handleNavigateToProject = (projectId) => {
+    if (navigationRef.isReady()) {
+      navigationRef.navigate("Projets", { screen: "ProjectDetail", params: { projectId } });
+    }
+  };
+
   return (
+    <>
     <CurvedBottomBarExpo.Navigator
       type="DOWN"
-      style={[styles.bottomBar, { borderTopColor: c.tabBarBorder || c.border }]}
+      style={[styles.bottomBar, { borderTopColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)" }]}
       shadowStyle={styles.shadow}
       height={72}
-      circleWidth={64}
-      bgColor={isDark ? "#0F0F1A" : "#F8F7FC"}
+      circleWidth={56}
+      bgColor={isDark ? "#0C0C14" : "#F8F7FC"}
       initialRouteName="Accueil"
       borderTopLeftRight
       screenOptions={{ headerShown: false }}
       renderCircle={({ selectedTab, navigate }) => {
         const isActive = selectedTab === "Dicter";
+        const tabBg = isDark ? "#0C0C14" : "#F8F7FC";
         return (
           <TouchableOpacity
             activeOpacity={0.85}
-            onPress={() => navigate("Dicter")}
+            onPress={openQuickDictate}
             style={styles.circleWrap}
           >
             <MotiView
-              animate={{ scale: isActive ? 1.1 : 1, translateY: isActive ? -4 : 0 }}
+              animate={{ scale: isActive ? 1.05 : 1, translateY: isActive ? -2 : 0 }}
               transition={{ type: "spring", damping: 10, stiffness: 200 }}
+              style={[styles.circleBtn, { borderColor: tabBg }]}
             >
-              <LinearGradient
-                colors={isActive ? [c.accent, "#A855F7"] : ["rgba(124,58,237,0.3)", "rgba(168,85,247,0.3)"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.circleBtn}
-              >
-                <Text style={styles.circleIcon}>🎙️</Text>
-              </LinearGradient>
+              <Mic color="#FFFFFF" size={24} strokeWidth={2.5} />
             </MotiView>
           </TouchableOpacity>
         );
@@ -179,6 +186,8 @@ function MainApp() {
       <CurvedBottomBarExpo.Screen name="Profil" component={ProfileScreen} position="RIGHT" />
       <CurvedBottomBarExpo.Screen name="Réglages" component={SettingsNav} position="RIGHT" />
     </CurvedBottomBarExpo.Navigator>
+    <QuickDictateSheet onNavigateToProject={handleNavigateToProject} />
+    </>
   );
 }
 
@@ -216,7 +225,9 @@ function RootNavigator() {
       ) : showOnboarding ? (
         <OnboardingScreen onComplete={() => setOnboardingDone(true)} />
       ) : (
-        <MainApp />
+        <QuickDictateProvider>
+          <MainApp />
+        </QuickDictateProvider>
       )}
     </>
   );
@@ -227,7 +238,7 @@ export default function App() {
     <SafeAreaProvider>
       <ThemeProvider>
         <AuthProvider>
-          <NavigationContainer>
+          <NavigationContainer ref={navigationRef}>
             <RootNavigator />
           </NavigationContainer>
         </AuthProvider>
@@ -236,20 +247,36 @@ export default function App() {
   );
 }
 
+const TAB_BAR_BG = "#0C0C14";
+
 const styles = StyleSheet.create({
-  bottomBar: { borderTopWidth: 2 },
+  bottomBar: { borderTopWidth: 1 },
   shadow: Platform.OS === "web"
-    ? { boxShadow: "0 -6px 16px rgba(0,0,0,0.5)" }
-    : { elevation: 20 },
+    ? { boxShadow: "0 -4px 12px rgba(0,0,0,0.3)" }
+    : { elevation: 12 },
   circleWrap: { alignItems: "center", justifyContent: "center", bottom: 28 },
   circleBtn: {
-    width: 64, height: 64, borderRadius: 32,
-    alignItems: "center", justifyContent: "center",
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#7C3AED",
+    borderWidth: 3,
+    borderColor: TAB_BAR_BG,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: -28,
     ...(Platform.OS === "web"
-      ? { boxShadow: "0 4px 20px rgba(124,58,237,0.4)" }
-      : { elevation: 12 }),
+      ? { boxShadow: "0 4px 12px rgba(0,0,0,0.4)" }
+      : Platform.OS === "ios"
+        ? {
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.35,
+            shadowRadius: 8,
+            elevation: 8,
+          }
+        : { elevation: 8 }),
   },
-  circleIcon: { fontSize: 28 },
   tabTouch: { flex: 1, alignItems: "center", justifyContent: "center" },
   tabItem: { alignItems: "center", gap: 3 },
   tabIconText: { fontSize: 20 },

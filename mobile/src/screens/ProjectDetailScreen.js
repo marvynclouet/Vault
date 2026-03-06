@@ -9,11 +9,13 @@ import {
   Animated,
   StyleSheet,
   Platform,
+  Modal,
 } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { getProject, updateProject } from "../storage";
+import { getProject, updateProject, deleteProject } from "../storage";
 import { pushToTrello } from "../api";
 import TaskCard from "../components/TaskCard";
 import ChatView from "../components/ChatView";
@@ -21,6 +23,8 @@ import KanbanView from "../components/KanbanView";
 import RadialChart from "../components/RadialChart";
 import { radius, spacing, type, cardStyle } from "../theme";
 import { useTheme } from "../contexts/ThemeContext";
+
+const useNativeDriver = Platform.OS !== "web";
 
 const TABS = [
   { key: "overview", label: "Résumé" },
@@ -56,6 +60,9 @@ export default function ProjectDetailScreen({ route, navigation }) {
   const [pushing, setPushing] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
   const [transcriptOpen, setTranscriptOpen] = useState(false);
+  const [taskForDate, setTaskForDate] = useState(null);
+  const [datePickerDate, setDatePickerDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   const VERDICT = {
@@ -67,13 +74,61 @@ export default function ProjectDetailScreen({ route, navigation }) {
   useEffect(() => {
     getProject(projectId).then((p) => {
       setProject(p);
-      Animated.timing(fadeAnim, { toValue: 1, duration: 350, useNativeDriver: true }).start();
+      Animated.timing(fadeAnim, { toValue: 1, duration: 350, useNativeDriver }).start();
     }).catch(console.error);
   }, [projectId]);
 
   const handleProjectUpdate = useCallback((updates) => {
     setProject((prev) => (prev ? { ...prev, ...updates } : prev));
   }, []);
+
+  const handleDeleteProject = useCallback(async () => {
+    const msg = "Supprimer ce projet ?\n\nTu es sûr ? C'est irréversible. Le projet, ses tâches et les messages du chat seront supprimés.";
+    if (Platform.OS === "web") {
+      if (window.confirm(msg)) {
+        await deleteProject(projectId);
+        navigation.goBack();
+      }
+    } else {
+      Alert.alert(
+        "Supprimer ce projet ?",
+        "Tu es sûr ? C'est irréversible. Le projet, ses tâches et les messages du chat seront supprimés.",
+        [
+          { text: "Annuler", style: "cancel" },
+          {
+            text: "Supprimer",
+            style: "destructive",
+            onPress: async () => {
+              await deleteProject(projectId);
+              navigation.goBack();
+            },
+          },
+        ]
+      );
+    }
+  }, [projectId, navigation]);
+
+  const handlePressDate = useCallback((task) => {
+    setTaskForDate(task);
+    setDatePickerDate(task.due_date ? new Date(task.due_date) : new Date());
+    setShowDatePicker(true);
+  }, []);
+
+  const handleDateChange = useCallback(
+    async (event, selectedDate) => {
+      setShowDatePicker(false);
+      if (event?.type === "set" && selectedDate && taskForDate && project) {
+        const iso = selectedDate.toISOString().slice(0, 10);
+        const updated = (project.tasks || []).map((t) =>
+          t === taskForDate ? { ...t, due_date: iso } : t
+        );
+        await updateProject(project.id, { tasks: updated });
+        setProject((p) => ({ ...p, tasks: updated }));
+      }
+      setTaskForDate(null);
+    },
+    [taskForDate, project]
+  );
 
   const handleToggleTask = useCallback(
     async (task) => {
@@ -208,9 +263,19 @@ ${suggestions ? `<h2>💡 Recommandations</h2><ul>${suggestions}</ul>` : ""}
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.projectName} numberOfLines={1}>{project.project_name}</Text>
-        <View style={[styles.verdictChip, { backgroundColor: v.bg, borderColor: v.border }]}>
-          <Text style={{ fontSize: 12 }}>{v.icon}</Text>
-          <Text style={[styles.verdictChipText, { color: v.color }]}>{v.label}</Text>
+        <View style={styles.headerRight}>
+          <View style={[styles.verdictChip, { backgroundColor: v.bg, borderColor: v.border }]}>
+            <Text style={{ fontSize: 12 }}>{v.icon}</Text>
+            <Text style={[styles.verdictChipText, { color: v.color }]}>{v.label}</Text>
+          </View>
+          <TouchableOpacity
+            onPress={handleDeleteProject}
+            activeOpacity={0.7}
+            style={[styles.deleteBtn, Platform.OS === "web" && { cursor: "pointer" }]}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Text style={styles.deleteBtnText}>Supprimer</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -234,19 +299,7 @@ ${suggestions ? `<h2>💡 Recommandations</h2><ul>${suggestions}</ul>` : ""}
 
       {/* Overview */}
       {activeTab === "overview" && (
-        <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabInner} showsVerticalScrollIndicator={false}>
-          <TouchableOpacity
-            onPress={handleExportPdf}
-            disabled={exportingPdf}
-            activeOpacity={0.8}
-            style={[styles.exportPdfBtn, { backgroundColor: c.accentBg, borderColor: c.accent }]}
-          >
-            {exportingPdf ? (
-              <ActivityIndicator size="small" color={c.accent} />
-            ) : (
-              <Text style={[styles.exportPdfText, { color: c.accentLight }]}>📄 Exporter en PDF</Text>
-            )}
-          </TouchableOpacity>
+        <ScrollView style={styles.tabContent} contentContainerStyle={[styles.tabInner, { paddingBottom: 100 }]} showsVerticalScrollIndicator={false}>
           <Text style={styles.summary}>{project.summary}</Text>
 
           {review && (
@@ -307,13 +360,26 @@ ${suggestions ? `<h2>💡 Recommandations</h2><ul>${suggestions}</ul>` : ""}
             </View>
           )}
 
-          <View style={{ height: 80 }} />
+          <TouchableOpacity
+            onPress={handleExportPdf}
+            disabled={exportingPdf}
+            activeOpacity={0.8}
+            style={[styles.exportPdfBtnOutline, { borderColor: c.border }]}
+          >
+            {exportingPdf ? (
+              <ActivityIndicator size="small" color={c.textMuted} />
+            ) : (
+              <Text style={[styles.exportPdfTextOutline, { color: c.textSecondary }]}>📄 Exporter en PDF</Text>
+            )}
+          </TouchableOpacity>
+
+          <View style={{ height: 100 }} />
         </ScrollView>
       )}
 
       {/* Tasks */}
       {activeTab === "tasks" && (
-        <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabInner} showsVerticalScrollIndicator={false}>
+        <ScrollView style={styles.tabContent} contentContainerStyle={[styles.tabInner, { paddingBottom: 100 }]} showsVerticalScrollIndicator={false}>
           <View style={styles.filterRow}>
             {TASK_FILTERS.map((f) => (
               <TouchableOpacity
@@ -337,7 +403,7 @@ ${suggestions ? `<h2>💡 Recommandations</h2><ul>${suggestions}</ul>` : ""}
               task={task}
               index={i}
               onToggle={handleToggleTask}
-              onPressDate={() => {}}
+              onPressDate={handlePressDate}
             />
           ))}
 
@@ -375,7 +441,7 @@ ${suggestions ? `<h2>💡 Recommandations</h2><ul>${suggestions}</ul>` : ""}
             </View>
           </View>
 
-          <View style={{ height: 80 }} />
+          <View style={{ height: 100 }} />
         </ScrollView>
       )}
 
@@ -387,6 +453,41 @@ ${suggestions ? `<h2>💡 Recommandations</h2><ul>${suggestions}</ul>` : ""}
       {/* Chat */}
       {activeTab === "chat" && (
         <ChatView project={project} onProjectUpdate={handleProjectUpdate} />
+      )}
+
+      {/* Date picker modal */}
+      {showDatePicker && (
+        <Modal visible transparent animationType="fade">
+          <TouchableOpacity
+            style={styles.datePickerOverlay}
+            activeOpacity={1}
+            onPress={() => setShowDatePicker(false)}
+          >
+            <TouchableOpacity
+              activeOpacity={1}
+              onPress={() => {}}
+              style={[styles.datePickerContent, { backgroundColor: c.bgSecondary, borderColor: c.border }]}
+            >
+              <Text style={[styles.datePickerTitle, { color: c.textPrimary }]}>Échéance</Text>
+              <DateTimePicker
+                value={datePickerDate}
+                mode="date"
+                display={Platform.OS === "ios" ? "spinner" : "default"}
+                onChange={(e, d) => {
+                  if (d) setDatePickerDate(d);
+                  if (e?.type === "set") handleDateChange(e, d);
+                }}
+                locale="fr-FR"
+              />
+              <TouchableOpacity
+                onPress={() => handleDateChange({ type: "set" }, datePickerDate)}
+                style={[styles.datePickerBtn, { backgroundColor: c.accent }]}
+              >
+                <Text style={styles.datePickerBtnText}>Valider</Text>
+              </TouchableOpacity>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </Modal>
       )}
     </Animated.View>
   );
@@ -404,6 +505,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.md,
   },
   projectName: { ...type.h2, flex: 1, marginRight: 10 },
+  headerRight: { flexDirection: "row", alignItems: "center", gap: 12 },
   verdictChip: {
     flexDirection: "row",
     alignItems: "center",
@@ -414,6 +516,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   verdictChipText: { fontSize: 11, fontWeight: "700" },
+  deleteBtn: { paddingVertical: 6, paddingHorizontal: 4 },
+  deleteBtnText: { color: "#EF4444", fontSize: 14, fontWeight: "600" },
   tabBarOuter: {
     paddingHorizontal: spacing.xl,
     paddingBottom: spacing.md,
@@ -435,17 +539,17 @@ const styles = StyleSheet.create({
   tabText: { fontSize: 13, fontWeight: "600" },
   tabContent: { flex: 1 },
   tabInner: { padding: spacing.xl },
-  exportPdfBtn: {
+  exportPdfBtnOutline: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 12,
+    paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: radius.input,
     borderWidth: 1,
-    marginBottom: spacing.lg,
+    marginTop: spacing.lg,
   },
-  exportPdfText: { fontSize: 14, fontWeight: "600" },
+  exportPdfTextOutline: { fontSize: 13, fontWeight: "500" },
   summary: { ...type.sub, lineHeight: 23, marginBottom: spacing.xl },
   reviewCard: {
     borderWidth: 1,
@@ -525,4 +629,25 @@ const styles = StyleSheet.create({
   },
   fabIcon: { fontSize: 18 },
   fabLabel: { color: "#fff", fontSize: 13, fontWeight: "600" },
+  datePickerOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  datePickerContent: {
+    borderRadius: 20,
+    padding: 24,
+    borderWidth: 1,
+    minWidth: 280,
+  },
+  datePickerTitle: { fontSize: 18, fontWeight: "700", marginBottom: 16, textAlign: "center" },
+  datePickerBtn: {
+    marginTop: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  datePickerBtnText: { color: "#fff", fontSize: 15, fontWeight: "600" },
 });
