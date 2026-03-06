@@ -14,7 +14,7 @@ import {
   Platform,
 } from "react-native";
 import { MotiView, AnimatePresence } from "moti";
-import { Mic } from "lucide-react-native";
+import { Mic, Home, FolderOpen, User, Settings } from "lucide-react-native";
 
 import { AuthProvider, useAuth } from "./src/contexts/AuthContext";
 import { ThemeProvider, useTheme } from "./src/contexts/ThemeContext";
@@ -76,39 +76,44 @@ function SettingsNav() {
   );
 }
 
+const TAB_ICON_SIZE = 20;
+
 function TabIcon({ routeName, focused, profile }) {
   const { colors: c } = useTheme();
-  const config = {
-    Accueil: { icon: "🏠", label: "Accueil" },
-    Projets: { icon: "📁", label: "Projets" },
-    Profil: {
-      icon: profile?.avatar_url || (profile?.display_name?.[0] || profile?.username?.[0] || "👤"),
-      label: "Profil",
-      isAvatar: true,
-    },
-    Réglages: { icon: "⚙️", label: "Config" },
+  const color = focused ? c.accentLight : c.textDisabled;
+  const avatarChar = profile?.avatar_url || profile?.display_name?.[0] || profile?.username?.[0];
+
+  const iconMap = {
+    Accueil: <Home size={TAB_ICON_SIZE} color={color} strokeWidth={focused ? 2.5 : 1.8} />,
+    Projets: <FolderOpen size={TAB_ICON_SIZE} color={color} strokeWidth={focused ? 2.5 : 1.8} />,
+    Profil: avatarChar ? (
+      <View style={[styles.avatarIcon, { backgroundColor: c.accentBg }]}>
+        <Text style={[styles.avatarIconText, { color: c.accentLight }]}>{avatarChar}</Text>
+      </View>
+    ) : (
+      <User size={TAB_ICON_SIZE} color={color} strokeWidth={focused ? 2.5 : 1.8} />
+    ),
+    Réglages: <Settings size={TAB_ICON_SIZE} color={color} strokeWidth={focused ? 2.5 : 1.8} />,
   };
-  const cfg = config[routeName] || { icon: "?", label: routeName };
+
+  const labels = {
+    Accueil: "Accueil",
+    Projets: "Projets",
+    Profil: "Profil",
+    Réglages: "Réglages",
+  };
 
   return (
     <View style={styles.tabItem}>
       <MotiView
-        animate={{ scale: focused ? 1.2 : 1, translateY: focused ? -2 : 0 }}
-        transition={{ type: "spring", damping: 12, stiffness: 200 }}
-        style={cfg.isAvatar && [styles.avatarIcon, { backgroundColor: c.accentBg }]}
+        animate={{ scale: focused ? 1.08 : 1 }}
+        transition={{ type: "spring", damping: 14, stiffness: 220 }}
       >
-        <Text style={[styles.tabIconText, cfg.isAvatar && styles.avatarIconText]}>
-          {cfg.icon || "👤"}
-        </Text>
+        {iconMap[routeName] || <User size={TAB_ICON_SIZE} color={color} />}
       </MotiView>
-      <MotiView
-        animate={{ opacity: focused ? 1 : 0.5, translateY: focused ? 0 : 4 }}
-        transition={{ type: "spring", damping: 15 }}
-      >
-        <Text style={[styles.tabLabel, { color: focused ? c.accentLight : c.textDisabled }]}>
-          {cfg.label}
-        </Text>
-      </MotiView>
+      <Text style={[styles.tabLabel, { color }]}>
+        {labels[routeName] || routeName}
+      </Text>
       <AnimatePresence>
         {focused && (
           <MotiView
@@ -280,8 +285,7 @@ const styles = StyleSheet.create({
         : { elevation: 8 }),
   },
   tabTouch: { flex: 1, alignItems: "center", justifyContent: "center" },
-  tabItem: { alignItems: "center", gap: 3 },
-  tabIconText: { fontSize: 20 },
+  tabItem: { alignItems: "center", gap: 3, overflow: "hidden" },
   tabLabel: { fontSize: 10, fontWeight: "600" },
   tabDot: { width: 4, height: 4, borderRadius: 2, marginTop: 2 },
   avatarIcon: {
