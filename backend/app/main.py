@@ -43,6 +43,12 @@ async def startup():
     load_system_prompt_pm()
 
 
+@app.get("/")
+async def root():
+    """Route racine pour éviter 404 sur Vercel."""
+    return {"message": "Vault-PM API", "docs": "/docs", "health": "/health"}
+
+
 app.include_router(analysis_router)
 
 ALLOWED_AUDIO = {".wav", ".m4a", ".mp3", ".webm", ".ogg", ".mp4"}
