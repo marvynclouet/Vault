@@ -8,8 +8,10 @@ import {
   Switch,
   Animated,
   StyleSheet,
+  Alert,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "../contexts/AuthContext";
 import { loadProfile } from "../storage";
 
@@ -86,6 +88,55 @@ export default function SettingsScreen({ navigation }) {
           </View>
         </View>
       </TouchableOpacity>
+
+      {/* Pricing */}
+      <Text style={[styles.sectionLabel, { color: c.textMuted }]}>ABONNEMENT</Text>
+      <LinearGradient
+        colors={["rgba(124,58,237,0.35)", "rgba(124,58,237,0.08)"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.pricingCard, { borderColor: "rgba(124,58,237,0.4)" }]}
+      >
+        <View style={styles.pricingHeader}>
+          <View>
+            <View style={styles.proBadge}>
+              <Text style={styles.proBadgeText}>PRO</Text>
+            </View>
+            <Text style={[styles.pricingTitle, { color: c.textPrimary }]}>Vault-PM Pro</Text>
+          </View>
+          <View style={styles.pricingAmount}>
+            <Text style={[styles.pricingPrice, { color: c.textPrimary }]}>9,99€</Text>
+            <Text style={[styles.pricingPer, { color: c.textMuted }]}>/mois</Text>
+          </View>
+        </View>
+
+        <View style={styles.pricingFeatures}>
+          {[
+            "Projets illimités",
+            "Chat PM illimité",
+            "Export Trello, Jira, Notion",
+            "Analyses PM Expert avancées",
+            "Support prioritaire",
+          ].map((f, i) => (
+            <View key={i} style={styles.featureRow}>
+              <Text style={styles.featureCheck}>✓</Text>
+              <Text style={[styles.featureText, { color: c.textSecondary }]}>{f}</Text>
+            </View>
+          ))}
+        </View>
+
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => Alert.alert("Bientôt disponible", "Le paiement en ligne arrive très prochainement. Reste connecté !")}
+          style={styles.pricingCta}
+        >
+          <Text style={styles.pricingCtaText}>Passer au Pro →</Text>
+        </TouchableOpacity>
+
+        <Text style={[styles.pricingNote, { color: c.textDisabled }]}>
+          Sans engagement · Résiliable à tout moment
+        </Text>
+      </LinearGradient>
 
       {/* Appearance */}
       <Text style={[styles.sectionLabel, { color: c.textMuted }]}>APPARENCE</Text>
@@ -236,6 +287,44 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
   },
   logoutText: { fontWeight: "600", fontSize: 14 },
+  pricingCard: {
+    borderWidth: 1,
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 12,
+  },
+  pricingHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 16,
+  },
+  proBadge: {
+    backgroundColor: "#7C3AED",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    alignSelf: "flex-start",
+    marginBottom: 6,
+  },
+  proBadgeText: { color: "#fff", fontSize: 10, fontWeight: "800", letterSpacing: 1 },
+  pricingTitle: { fontSize: 18, fontWeight: "700" },
+  pricingAmount: { alignItems: "flex-end" },
+  pricingPrice: { fontSize: 28, fontWeight: "800" },
+  pricingPer: { fontSize: 12, marginTop: -4 },
+  pricingFeatures: { gap: 8, marginBottom: 20 },
+  featureRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  featureCheck: { color: "#A78BFA", fontSize: 14, fontWeight: "700", width: 16 },
+  featureText: { fontSize: 14 },
+  pricingCta: {
+    backgroundColor: "#7C3AED",
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  pricingCtaText: { color: "#fff", fontSize: 15, fontWeight: "700" },
+  pricingNote: { textAlign: "center", fontSize: 11 },
   madeWith: {
     textAlign: "center",
     fontSize: 11,
