@@ -61,10 +61,11 @@ async def generate_weekly_review(projects: List[dict]) -> dict:
                 completed_tasks.append({"title": t.get("title", ""), "project": p.get("project_name", "")})
 
         if pending:
-            last_activity = p.get("created_at", "")
+            last_activity = p.get("created_at", "") or ""
             for t in tasks:
-                if t.get("completed_at", "") > last_activity:
-                    last_activity = t["completed_at"]
+                ca = t.get("completed_at") or ""
+                if ca > last_activity:
+                    last_activity = ca
             age_days = (now - datetime.fromisoformat(last_activity.replace("Z", ""))).days if last_activity else 99
             if age_days >= 5:
                 dormant_projects.append(p.get("project_name", "Projet sans nom"))
