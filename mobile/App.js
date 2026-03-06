@@ -105,12 +105,7 @@ function TabIcon({ routeName, focused, profile }) {
 
   return (
     <View style={styles.tabItem}>
-      <MotiView
-        animate={{ scale: focused ? 1.08 : 1 }}
-        transition={{ type: "spring", damping: 14, stiffness: 220 }}
-      >
-        {iconMap[routeName] || <User size={TAB_ICON_SIZE} color={color} />}
-      </MotiView>
+      {iconMap[routeName] || <User size={TAB_ICON_SIZE} color={color} />}
       <Text style={[styles.tabLabel, { color }]}>
         {labels[routeName] || routeName}
       </Text>
