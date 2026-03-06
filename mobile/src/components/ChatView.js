@@ -231,6 +231,7 @@ export default function ChatView({ project, onProjectUpdate }) {
     else if (!transcribing) setRecording(false);
   }, [isRecording, transcribing]);
 
+  const doSendRef = useRef();
   const doSend = useCallback(
     async (text, isDictated = false) => {
       if (!text?.trim() || sending) return;
@@ -291,6 +292,7 @@ export default function ChatView({ project, onProjectUpdate }) {
     },
     [messages, project, sending, conversationMode, startRecording]
   );
+  doSendRef.current = doSend;
 
   useEffect(() => {
     if (!pendingTranscribe || (!audioUri && !audioBlob) || isRecording) return;
@@ -307,7 +309,7 @@ export default function ChatView({ project, onProjectUpdate }) {
         if (transcript?.trim()) {
           setInput(transcript.trim());
           if (autoSendDispatch) {
-            doSend(transcript.trim(), true);
+            doSendRef.current?.(transcript.trim(), true);
           }
         }
       } catch (err) {
@@ -317,7 +319,7 @@ export default function ChatView({ project, onProjectUpdate }) {
       }
     })();
     return () => { cancelled = true; };
-  }, [pendingTranscribe, audioUri, audioBlob, isRecording, autoSendDispatch, resetRecording, doSend]);
+  }, [pendingTranscribe, audioUri, audioBlob, isRecording, autoSendDispatch, resetRecording]);
 
   useEffect(() => {
     loadMessages(project.id).then((msgs) => {
@@ -489,8 +491,8 @@ export default function ChatView({ project, onProjectUpdate }) {
           <View style={styles.recordingBarWrap}>
             <View style={[styles.recordingBar, { backgroundColor: "rgba(124,58,237,0.15)" }]}>
               <TouchableOpacity onPress={handleCancelRecording} style={styles.recordingCancelBtn}>
-              <X color="#EF4444" size={20} />
-            </TouchableOpacity>
+                <X color="#EF4444" size={20} />
+              </TouchableOpacity>
             <View style={styles.recordingCenter}>
               <View style={styles.recordingIndicatorRow}>
                 <RecordingPulse />

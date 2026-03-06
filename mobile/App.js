@@ -218,15 +218,17 @@ function RootNavigator() {
       <StatusBar style={isDark ? "light" : "dark"} />
       {!user ? (
         <AuthScreen />
-      ) : onboardingDone === null ? (
-        <View style={[styles.loadingScreen, { backgroundColor: c.bgPrimary }]}>
-          <ActivityIndicator size="large" color={c.accent} />
-        </View>
-      ) : showOnboarding ? (
-        <OnboardingScreen onComplete={() => setOnboardingDone(true)} />
       ) : (
         <QuickDictateProvider>
-          <MainApp />
+          {onboardingDone === null ? (
+            <View style={[styles.loadingScreen, { backgroundColor: c.bgPrimary }]}>
+              <ActivityIndicator size="large" color={c.accent} />
+            </View>
+          ) : showOnboarding ? (
+            <OnboardingScreen onComplete={() => setOnboardingDone(true)} />
+          ) : (
+            <MainApp />
+          )}
         </QuickDictateProvider>
       )}
     </>

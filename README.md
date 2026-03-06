@@ -209,6 +209,17 @@ Le benchmark teste :
 - **Stress** : chat avec 15 tâches en contexte
 - **Débit** : 2 analyses en parallèle (peut atteindre le rate limit Groq en free tier)
 
+## Déploiement Vercel (Backend API)
+
+Pour déployer le backend FastAPI sur Vercel :
+
+1. Connecte le repo GitHub à Vercel
+2. **Settings → General → Root Directory** : clique "Edit" et saisis `backend`
+3. Configure les variables d'environnement (OPENAI_API_KEY ou GROQ_API_KEY, etc.)
+4. Redeploy
+
+Sans cette configuration, la racine du repo affiche une page d'aide. Avec `backend` comme Root Directory, l'API FastAPI est déployée et `/`, `/health`, `/docs` répondent correctement.
+
 ## Modèle économique envisagé
 
 | Plan | Prix | Contenu |
