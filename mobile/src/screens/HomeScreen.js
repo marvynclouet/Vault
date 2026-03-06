@@ -263,7 +263,7 @@ export default function HomeScreen({ navigation }) {
       showsVerticalScrollIndicator={false}
     >
       {/* 1. Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 24 }]}>
         <View>
           <Text style={[styles.greeting, { color: c.textPrimary }]}>Bonjour, {prénom} 👋</Text>
           <Text style={[styles.date, { color: c.textMuted }]}>{formatDate()}</Text>
