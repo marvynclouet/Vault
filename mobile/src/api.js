@@ -1,7 +1,9 @@
 import { Platform } from "react-native";
 
 const API_BASE =
-  Platform.OS === "web" ? "http://localhost:8000" : "http://10.74.2.202:8000";
+  Platform.OS === "web"
+    ? "http://localhost:8000"
+    : "https://vault-nu-five.vercel.app";
 
 function buildFormData(audioUri, audioBlob) {
   const formData = new FormData();
