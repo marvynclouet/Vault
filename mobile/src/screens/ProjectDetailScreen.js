@@ -23,6 +23,7 @@ import KanbanView from "../components/KanbanView";
 import RadialChart from "../components/RadialChart";
 import { radius, spacing, type, cardStyle } from "../theme";
 import { useTheme } from "../contexts/ThemeContext";
+import { Trash2 } from "lucide-react-native";
 
 const useNativeDriver = Platform.OS !== "web";
 
@@ -274,7 +275,7 @@ ${suggestions ? `<h2>💡 Recommandations</h2><ul>${suggestions}</ul>` : ""}
             style={[styles.deleteBtn, Platform.OS === "web" && { cursor: "pointer" }]}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
-            <Text style={styles.deleteBtnText}>Supprimer</Text>
+            <Trash2 size={18} color="#EF4444" strokeWidth={2} />
           </TouchableOpacity>
         </View>
       </View>
@@ -299,7 +300,7 @@ ${suggestions ? `<h2>💡 Recommandations</h2><ul>${suggestions}</ul>` : ""}
 
       {/* Overview */}
       {activeTab === "overview" && (
-        <ScrollView style={styles.tabContent} contentContainerStyle={[styles.tabInner, { paddingBottom: 100 }]} showsVerticalScrollIndicator={false}>
+        <ScrollView style={styles.tabContent} contentContainerStyle={[styles.tabInner, { paddingBottom: 160 }]} showsVerticalScrollIndicator={false}>
           <Text style={styles.summary}>{project.summary}</Text>
 
           {review && (
@@ -373,13 +374,13 @@ ${suggestions ? `<h2>💡 Recommandations</h2><ul>${suggestions}</ul>` : ""}
             )}
           </TouchableOpacity>
 
-          <View style={{ height: 100 }} />
+          <View style={{ height: 160 }} />
         </ScrollView>
       )}
 
       {/* Tasks */}
       {activeTab === "tasks" && (
-        <ScrollView style={styles.tabContent} contentContainerStyle={[styles.tabInner, { paddingBottom: 100 }]} showsVerticalScrollIndicator={false}>
+        <ScrollView style={styles.tabContent} contentContainerStyle={[styles.tabInner, { paddingBottom: 160 }]} showsVerticalScrollIndicator={false}>
           <View style={styles.filterRow}>
             {TASK_FILTERS.map((f) => (
               <TouchableOpacity
@@ -441,7 +442,7 @@ ${suggestions ? `<h2>💡 Recommandations</h2><ul>${suggestions}</ul>` : ""}
             </View>
           </View>
 
-          <View style={{ height: 100 }} />
+          <View style={{ height: 160 }} />
         </ScrollView>
       )}
 
@@ -517,7 +518,6 @@ const styles = StyleSheet.create({
   },
   verdictChipText: { fontSize: 11, fontWeight: "700" },
   deleteBtn: { paddingVertical: 6, paddingHorizontal: 4 },
-  deleteBtnText: { color: "#EF4444", fontSize: 14, fontWeight: "600" },
   tabBarOuter: {
     paddingHorizontal: spacing.xl,
     paddingBottom: spacing.md,

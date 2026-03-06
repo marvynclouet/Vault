@@ -401,7 +401,10 @@ export default function HomeScreen({ navigation }) {
                   <View style={[styles.miniProgress, { backgroundColor: "rgba(255,255,255,0.1)" }]}>
                     <View style={[styles.miniProgressFill, { width: `${pct}%`, backgroundColor: c.accent }]} />
                   </View>
-                  <Text style={[styles.projectScore, { color: c.textMuted }]}>{scoreNorm}/10</Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
+                    <Text style={[styles.projectScoreLabel, { color: c.textDisabled }]}>Score IA</Text>
+                    <Text style={[styles.projectScore, { color: c.accentLight }]}>{scoreNorm}/10</Text>
+                  </View>
                 </TouchableOpacity>
               );
             })}
@@ -588,7 +591,8 @@ const styles = StyleSheet.create({
   projectName: { fontSize: 14, fontWeight: "600", marginTop: 4, marginBottom: 8 },
   miniProgress: { height: 4, borderRadius: 2, overflow: "hidden", marginBottom: 6 },
   miniProgressFill: { height: "100%", borderRadius: 2 },
-  projectScore: { fontSize: 11 },
+  projectScore: { fontSize: 11, fontWeight: "700" },
+  projectScoreLabel: { fontSize: 9 },
 
   activityRow: { flexDirection: "row", alignItems: "center", marginBottom: 10, gap: 10 },
   activityDot: { width: 6, height: 6, borderRadius: 3 },

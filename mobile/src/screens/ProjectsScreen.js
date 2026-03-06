@@ -108,9 +108,12 @@ function ProjectCard({ item, index, onPress, onDelete }) {
           <View style={styles.cardTitleRow}>
             <Text style={[styles.cardTitle, { color: c.textPrimary }]} numberOfLines={1}>{item.project_name}</Text>
             <View style={styles.cardTitleRight}>
-              <Text style={[styles.cardScore, { color: c.textMuted }]}>
-                {Math.min(10, Math.round((item.review?.confidence ?? item.review?.score_global ?? 0) / 4) || 0)}/10
-              </Text>
+              <View style={styles.scoreChip}>
+                <Text style={[styles.scoreChipLabel, { color: c.textDisabled }]}>Score IA</Text>
+                <Text style={[styles.cardScore, { color: c.accentLight }]}>
+                  {Math.min(10, Math.round((item.review?.confidence ?? item.review?.score_global ?? 0) / 4) || 0)}/10
+                </Text>
+              </View>
               <Text style={[styles.cardChevron, { color: c.textDisabled }]}>›</Text>
             </View>
           </View>
@@ -245,7 +248,9 @@ const styles = StyleSheet.create({
   cardTitleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 },
   cardTitle: { fontSize: 16, fontWeight: "700", flex: 1, marginRight: 8 },
   cardTitleRight: { flexDirection: "row", alignItems: "center", gap: 6 },
-  cardScore: { fontSize: 11, fontWeight: "600" },
+  scoreChip: { flexDirection: "row", alignItems: "center", gap: 4 },
+  scoreChipLabel: { fontSize: 10 },
+  cardScore: { fontSize: 11, fontWeight: "700" },
   cardChevron: { fontSize: 22 },
   cardMetaRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
   verdictBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.badge },
